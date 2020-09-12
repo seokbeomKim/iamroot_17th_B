@@ -1,0 +1,58 @@
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 75ac7f8ae93c..68b9dfc8876d 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -1226,6 +1226,7 @@ asmlinkage long sys_old_mmap(struct mmap_arg_struct __user *arg);
+  * not implemented -- see kernel/sys_ni.c
+  */
+ asmlinkage long sys_ni_syscall(void);
++asmlinkage long sys_newsyscall(void);
+ 
+ #endif /* CONFIG_ARCH_HAS_SYSCALL_WRAPPER */
+ 
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 995b36c2ea7d..e83586882042 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -780,6 +780,10 @@ __SC_COMP_3264(__NR_io_pgetevents, sys_io_pgetevents_time32, sys_io_pgetevents,
+ __SYSCALL(__NR_rseq, sys_rseq)
+ #define __NR_kexec_file_load 294
+ __SYSCALL(__NR_kexec_file_load,     sys_kexec_file_load)
++
++#define __NR_newsyscall 295
++__SYSCALL(__NR_newsyscall, sys_newsyscall)
++
+ /* 295 through 402 are unassigned to sync up with generic numbers, don't use */
+ #if __BITS_PER_LONG == 32
+ #define __NR_clock_gettime64 403
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 9a20016d4900..0cba650b0a59 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -127,6 +127,8 @@ obj-$(CONFIG_WATCH_QUEUE) += watch_queue.o
+ 
+ obj-$(CONFIG_SYSCTL_KUNIT_TEST) += sysctl-test.o
+ 
++obj-y += newfile.o
++
+ CFLAGS_stackleak.o += $(DISABLE_STACKLEAK_PLUGIN)
+ obj-$(CONFIG_GCC_PLUGIN_STACKLEAK) += stackleak.o
+ KASAN_SANITIZE_stackleak.o := n
+diff --git a/kernel/newfile.c b/kernel/newfile.c
+new file mode 100644
+index 000000000000..fa6efe4ec6f5
+--- /dev/null
++++ b/kernel/newfile.c
+@@ -0,0 +1,12 @@
++#include <linux/unistd.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <linux/sched.h>
++
++asmlinkage long __arm64_sys_newsyscall(void)
++{
++	printk("<0> Hello Linux, I'm in Kernel \n");
++	return 0;
++}
++
++EXPORT_SYMBOL_GPL(__arm64_sys_newsyscall);
