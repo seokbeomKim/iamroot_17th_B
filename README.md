@@ -46,6 +46,8 @@
 
 * System Call 구현 실습 ([예제 파일 참고](./20200912/))
 
+  * [환경 구성 가이드(Arm64 커널 & QEMU)](https://www.notion.so/chaoxifer/buildroot-qemu-c115e67902c7490f93c011efa0653b54)
+
 * <<코드로 알아보는 ARM 리눅스 커널>>
 
   * (~p26) 1.4.4 캐시 일관성의 두 가지 관점
