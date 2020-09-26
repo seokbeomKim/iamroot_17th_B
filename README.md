@@ -72,5 +72,4 @@
   * U-Boot (master: 1da91d9bcd6e5ef046c1df0d373d0df87b1e8a72)
 
 * 분석 소스코드: https://github.com/seokbeomKim/iamroot_17th_group7/tree/20200926
-
 * 추석 연휴인 관계로 다음 스터디는 10/10일에 진행됩니다.
