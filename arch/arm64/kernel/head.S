@@ -75,6 +75,13 @@ _head:
 	b	primary_entry
 #else
 	b	primary_entry			// branch to kernel start, magic
+
+	// [iamroot] pe_header
+	//
+	// 아래부터 pe_header 레이블 이전까지는 실제 실행되는 부분은
+	// 아니지만, 부트로더에서참고하는 PE 헤더를 위해 사용되는
+	// 부분이다.
+
 	.long	0				// reserved
 #endif
 	le64sym	_kernel_offset_le		// Image load offset from start of RAM, little-endian
@@ -85,9 +92,20 @@ _head:
 	.quad	0				// reserved
 	.ascii	ARM64_IMAGE_MAGIC		// Magic number
 #ifdef CONFIG_EFI
+
 	.long	pe_header - _head		// Offset to the PE header.
 
 pe_header:
+	// [iamroot] EFI PE Header
+	//
+	// 아래의 __EFI_PE_HEADER 매크로를 살펴보면, EFI P/E 헤더에 //
+	// 포함되어 있는 데이터 구조를 살펴볼 수 있다. 실제 u-boot 코드의
+	// 아래 경로에서, efi 이미지를 파싱하고 관련된 헤더들의 데이터
+	// 구조를 확인 가능하다.
+	//
+	// 1. efi_image_parse($u-boot/lib/efi_loader/efi_image_loader.c:259)
+	// 2. _IMAGE_FILE_HEADER($u-boot/include/pe.h)
+
 	__EFI_PE_HEADER
 #else
 	.long	0				// reserved
@@ -107,6 +125,31 @@ pe_header:
 	 *  x24        __primary_switch() .. relocate_kernel()  current RELR displacement
 	 */
 SYM_CODE_START(primary_entry)
+
+	// [iamroot] - SYM_CODE_START 매크로
+	//
+	// 기존 ENTRY(stext) & ENDPROC(stext) -> SYM_CODE_START &
+	// SYM_CODE_END 로 변경됨
+	//
+	// commit: ffedeeb780dc554eff3d3b16e6a462a26a41d7ec
+	//
+	// Kernel Doc($KERNEL/Documentation/arm64/booting.rst) 파일에
+	// 따르면, 아래와 같이 정의된다.
+	//
+	// ===
+	// Before jumping into the kernel, the following conditions must be met:
+	//
+	// - Quiesce all DMA capable devices so that memory does not get
+	//   corrupted by bogus network packets or disk data.  This will save
+	//   you many hours of debug.
+	//
+	// - Primary CPU general-purpose register settings:
+	//
+	//     - x0 = physical address of device tree blob (dtb) in system RAM.
+	//     - x1 = 0 (reserved for future use)
+	//     - x2 = 0 (reserved for future use)
+	//     - x3 = 0 (reserved for future use)
+	// ===
 	bl	preserve_boot_args
 	bl	el2_setup			// Drop to EL1, w0=cpu_boot_mode
 	adrp	x23, __PHYS_OFFSET
@@ -127,6 +170,11 @@ SYM_CODE_END(primary_entry)
  * Preserve the arguments passed by the bootloader in x0 .. x3
  */
 SYM_CODE_START_LOCAL(preserve_boot_args)
+	// TODO
+	// [iamroot]
+	//
+	// U-boot 코드에서 FDT(device tree) 로드하여 물리주소 설정하는
+	// 부분 찾아볼 것
 	mov	x21, x0				// x21=FDT
 
 	adr_l	x0, boot_args			// record the contents of
@@ -137,6 +185,11 @@ SYM_CODE_START_LOCAL(preserve_boot_args)
 						// MMU off
 
 	mov	x1, #0x20			// 4 x 8 bytes
+
+	// [iamroot] invalidate d-cache
+	//
+	// function prototype: __inval_dcache_area(kaddr, size)
+	//
 	b	__inval_dcache_area		// tail call
 SYM_CODE_END(preserve_boot_args)
 
@@ -494,15 +547,21 @@ EXPORT_SYMBOL(kimage_vaddr)
  */
 SYM_FUNC_START(el2_setup)
 	msr	SPsel, #1			// We want to use SP_EL{1,2}
-	mrs	x0, CurrentEL
+						// 0b0: Use SP_EL0 at all Exception levels
+						// 0b1: Use SP_ELx for Exception level ELx
+
+	mrs	x0, CurrentEL			// CurrentEL = Current Exception Level (Special-purpose Register)
 	cmp	x0, #CurrentEL_EL2
 	b.eq	1f
+	// TODO SCTLR_EL1_RES1 사용
+	// EL1일 경우
 	mov_q	x0, (SCTLR_EL1_RES1 | ENDIAN_SET_EL1)
 	msr	sctlr_el1, x0
 	mov	w0, #BOOT_CPU_MODE_EL1		// This cpu booted in EL1
 	isb
 	ret
 
+// EL2일 경우
 1:	mov_q	x0, (SCTLR_EL2_RES1 | ENDIAN_SET_EL2)
 	msr	sctlr_el2, x0
 
