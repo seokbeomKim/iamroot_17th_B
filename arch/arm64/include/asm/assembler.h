@@ -477,6 +477,10 @@ USER(\label, ic	ivau, \tmp2)			// invalidate I line PoU
 	 * must emit the lo32/hi32 halves individually.
 	 */
 	.macro	le64sym, sym
+
+	// 6ad1fe5d9077a1ab40bf74b61994d2e770b00b14
+	// Image Header에 빌드 타임 상수를 생성하는 기존 링커 방식이 동작하지
+        // 않아 생성된 매크로이다.
 	.long	\sym\()_lo32
 	.long	\sym\()_hi32
 	.endm
