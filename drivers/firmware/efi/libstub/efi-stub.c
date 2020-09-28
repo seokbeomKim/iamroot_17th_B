@@ -130,6 +130,11 @@ static unsigned long get_dram_base(void)
 efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 				   efi_system_table_t *sys_table_arg)
 {
+	// [iamroot] pe_entry
+	//
+	// EFI pe entry를 통해 efi를 사용할 경우의 이미지 로딩 주소,
+	// FDT 등의 정보를 가지고 온다.
+	// 이러한 정보들은 부트로더 레벨에서 이미 준비된다.
 	efi_loaded_image_t *image;
 	efi_status_t status;
 	unsigned long image_addr;
@@ -215,6 +220,11 @@ efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 
 	si = setup_graphics();
 
+	// [iamroot] load kernel image
+	//
+	// 커널 이미지 로드 위치를 config에 따라 로드한다. BASE를
+	// 랜덤하게 가져갈 것인지, 로드하는 이미지의 Page Align은
+	// 어떻게 할 것인지 등등
 	status = handle_kernel_image(&image_addr, &image_size,
 				     &reserve_addr,
 				     &reserve_size,

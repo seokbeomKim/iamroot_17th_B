@@ -61,6 +61,13 @@
  * that are useful before the MMU is enabled. The allocations are described
  * in the entry routines.
  */
+
+	// [iamroot] .head.text
+	//
+	// __HEAD는 .head.text 라는 섹션을 포함한다. .head.text는
+	// ARM64 전용 링커스크립트를 살펴본다.
+	//
+	//    #define __HEAD	.section	".head.text","ax"
 	__HEAD
 _head:
 	/*
@@ -170,7 +177,6 @@ SYM_CODE_END(primary_entry)
  * Preserve the arguments passed by the bootloader in x0 .. x3
  */
 SYM_CODE_START_LOCAL(preserve_boot_args)
-	// TODO
 	// [iamroot]
 	//
 	// U-boot 코드에서 FDT(device tree) 로드하여 물리주소 설정하는
