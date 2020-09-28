@@ -73,3 +73,8 @@
 
 * 분석 소스코드: https://github.com/seokbeomKim/iamroot_17th_group7/tree/20200926
 * 추석 연휴인 관계로 다음 스터디는 10/10일에 진행됩니다.
+
+* 부트로더(u-boot)에서 EFI pe entry 부분을 설정하고 리눅스 커널에서
+  읽어오는 부분에 대해, 윤여름님께서 아래와 같이
+  설명해주셨습니다. 관련 내용은 [EFI boot from u-boot to kernel
+  start-point](https://github.com/seokbeomKim/iamroot_17th_group7/blob/kernel/Documentation/iamroot/set_efi_pe_before_kernel_start.org)
