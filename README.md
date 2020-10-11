@@ -78,3 +78,19 @@
   읽어오는 부분에 대해, 윤여름님께서 아래와 같이
   설명해주셨습니다. 관련 내용은 [EFI boot from u-boot to kernel
   start-point](https://github.com/seokbeomKim/iamroot_17th_group7/blob/kernel/Documentation/iamroot/set_efi_pe_before_kernel_start.org)
+
+### 8주차
+
+* 2020.10.10, 온라인 세션 (with Zoom)
+
+* <<코드로 알아보는 ARM 리눅스 커널>>
+
+  * 2.1.4 페이지 테이블 생성
+
+* head.S 에서 사용하는 기본 ARM 어셈블리 언어 재확인
+
+* 차주에 아래 내용으로 진행하겠습니다.
+
+  * 커널 분석 환경 구성
+  * head.S 내에서 사용하는 매크로 분석
+  * 2.1.4 페이지 테이블 생성
