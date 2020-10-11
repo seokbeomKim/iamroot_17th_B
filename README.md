@@ -89,6 +89,8 @@
 
 * head.S 에서 사용하는 기본 ARM 어셈블리 언어 재확인
 
+  * 주요 ARM64 어셈블리 명령어: https://courses.cs.washington.edu/courses/cse469/18wi/Materials/arm64.pdf
+
 * 차주에 아래 내용으로 진행하겠습니다.
 
   * 커널 분석 환경 구성
