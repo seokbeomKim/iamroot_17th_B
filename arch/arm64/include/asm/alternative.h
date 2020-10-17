@@ -103,12 +103,15 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
 
 #include <asm/assembler.h>
 
+// 매크로 사용 예:
+// altinstruction_entry 661f, 663f, \cap, 662f-661f, 664f-663f
 .macro altinstruction_entry orig_offset alt_offset feature orig_len alt_len
-	.word \orig_offset - .
-	.word \alt_offset - .
-	.hword \feature
-	.byte \orig_len
-	.byte \alt_len
+	// .word 0xDEADBEEF: 워드(4 bytes) 추가
+	.word \orig_offset - .		// orig_offset - current address 4 bytes
+	.word \alt_offset - .		// alt_offset - current address 4 bytes
+	.hword \feature 			// feature 2 bytes 추가
+	.byte \orig_len				// orig_len 바이트 추가
+	.byte \alt_len              // alt_len 바이트 추가
 .endm
 
 .macro alternative_insn insn1, insn2, cap, enable = 1
@@ -148,9 +151,44 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
  * Begin an alternative code sequence.
  */
 .macro alternative_if_not cap
+	// .Lasm_alt_mode: Local label(asm_alt_mode)
+	// .set: set the value of symbol to expression.
+	//       This changes symbol’s value and type to conform to expression.
+	// .pushsection
+	// .popsection
+
+	// .altinstructions:
+	// "kernel/vmlinux.lds.S" 에 altinstructions 정의 되어 있어요
+	// .altinstructions : { 	__alt_instructions = .;
+	// *(.altinstructions) __alt_instructions_end = .; }
+
+	// local label asm_alt_mode를 0으로 설정
+	// .set adams, 0x2A -> adams = 0b00101010
+	// asm_alt_mode -> 0
 	.set .Lasm_alt_mode, 0
+
+	// .pushsection name ("flag") (@type) (arguments)
+	//
+	// altinstruction  섹션 추가하고 플래그를 "a"로 설정
+	// kernel/vmlinux.lds.S에 정의되어 있는 부분을
+	// "a(SHF_ALLOC: the section is allocatable.)"
+	// 플래그 추가하여 섹션에 추가
+	// - 플래그 참고 자료: https://www.keil.com/support/man/docs/armclang_ref/armclang_ref_bpl1510589893923.htm
+
+	// pushsection 사용하는 이유:
+	// http://rsusu1.rnd.runnet.ru/linux/doc/ref/sec_stck.htm
+	// linker script 파싱 시에 사용하는 섹션 스택의 depth는 최소 10이며,
+	// pushsection ~.. popsection을 이용하여 섹션을 정의한다.
 	.pushsection .altinstructions, "a"
+
+	// 661f는 라인 기준으로 forward + 661 Label을 의미하며,
+	// 661b는 라인 기준으로 backward + 661 Label을 의미한다.
+	// Q. 그렇다면, altinstruction 각 레이블까지의 오프셋 값과 레이블 간의 코드 사이즈에 대한
+	// 정보만 담겨있는 건가요?
+	// 정보를저장한 후에 alternative_else 같은데서 완성되는 것 같습니다.
+	// 감사합니다 :)
 	altinstruction_entry 661f, 663f, \cap, 662f-661f, 664f-663f
+
 	.popsection
 661:
 .endm
@@ -263,7 +301,7 @@ alternative_endif
 	.macro uao_user_alternative l, inst, alt_inst, reg, addr, post_inc
 		alternative_if_not ARM64_HAS_UAO
 8888:			\inst	\reg, [\addr], \post_inc;
-			nop;
+			nbop;
 		alternative_else
 			\alt_inst	\reg, [\addr];
 			add		\addr, \addr, \post_inc;

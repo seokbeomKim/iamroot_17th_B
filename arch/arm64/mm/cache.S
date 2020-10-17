@@ -142,12 +142,32 @@ SYM_FUNC_START_LOCAL(__dma_inv_area)
 SYM_FUNC_START_PI(__inval_dcache_area)
 	/* FALLTHROUGH */
 
+// [iamroot]
+// $kernel/arch/arm64/include/asm/linkage.h
+
+// 1. SYM_FUNC_START_PI:
+// #define SYM_FUNC_START_PI(x)			\
+//		SYM_FUNC_START_ALIAS(__pi_##x);	\
+//		SYM_FUNC_START(x)
+// 2.SYM_FUNC_START_LOCAL:
+// #define SYM_FUNC_START_LOCAL(name)			\
+//	SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)	\
+//  BTI_C
+
+
+
+
 /*
  *	__dma_inv_area(start, size)
  *	- start   - virtual start address of region
  *	- size    - size in question
  */
-	add	x1, x1, x0
+	// x1 <- boot_args의 크기 (#32)
+	// x0 <- (boot_args[0])
+
+	add	x1, x1, x0			// x1 <- boot_args 의 끝점
+
+	// assembler.h:294
 	dcache_line_size x2, x3
 	sub	x3, x2, #1
 	tst	x1, x3				// end cache line aligned?

@@ -185,8 +185,15 @@ lr	.req	x30		// link register
 	 * @dst: destination register (64 bit wide)
 	 * @sym: name of the symbol
 	 */
+	// adr_l 매크로가 만들어진 이유
+	// https://pㄴatchwork.kernel.org/project/kvm/patch/20170805205222.19868-2-ard.biesheuvel@linaro.org/
 	.macro	adr_l, dst, sym
+	// adrp : PC 기준으로 심볼의 위치를 계산 (page 기준)
+	// adr : +- 4gb 까지밖에 안되서
 	adrp	\dst, \sym
+
+	// adrp 사용으로 인해 보정되어야 하는 나머지 12비트에 대해 아래와 같이 계산하여 더해줌
+	// :lo12:\sym -> \sym(symbol)의 low 12-bits
 	add	\dst, \dst, :lo12:\sym
 	.endm
 
@@ -242,7 +249,7 @@ alternative_endif
 	.macro ldr_this_cpu dst, sym, tmp
 	adr_l	\dst, \sym
 alternative_if_not ARM64_HAS_VIRT_HOST_EXTN
-	mrs	\tmp, tpidr_el1
+	mrs	\tmp, ti
 alternative_else
 	mrs	\tmp, tpidr_el2
 alternative_endif
@@ -261,11 +268,23 @@ alternative_endif
  * provide the system wide safe value from arm64_ftr_reg_ctrel0.sys_val
  */
 	.macro	read_ctr, reg
+	// CTR_EL0: D13.2.33 Cache Type Reigster
+	// Provides information about the architecture of the caches.
+	// alternative_if_not: arch/arm64/include/asm/alternative.h:150
+	//
+	// alternative_if_not 매크로 만든 이유:
+	// https://lists.linaro.org/pipermail/linaro-kernel/2015-July/022371.html
+	//
+	// CPU Capabilities – ARM64
+	// http://jake.dothome.co.kr/cpucaps64/
+
+	// http://jake.dothome.co.kr/alternative/
+	// - alternative_{if .. endif}
 alternative_if_not ARM64_MISMATCHED_CACHE_TYPE
 	mrs	\reg, ctr_el0			// read CTR
 	nop
 alternative_else
-	ldr_l	\reg, arm64_ftr_reg_ctrel0 + ARM64_FTR_SYSVAL
+	ldr_l	\reg, arm64_ftr_reg_ctrl0 + ARM64_FTR_SYSVAL
 alternative_endif
 	.endm
 
@@ -275,7 +294,7 @@ alternative_endif
  * from the CTR register.
  */
 	.macro	raw_dcache_line_size, reg, tmp
-	mrs	\tmp, ctr_el0			// read CTR
+	mrs	\tmp, ctr_el0	dcache_line_size		// read CTR
 	ubfm	\tmp, \tmp, #16, #19		// cache line size encoding
 	mov	\reg, #4			// bytes per word
 	lsl	\reg, \reg, \tmp		// actual cache line size
@@ -285,6 +304,9 @@ alternative_endif
  * dcache_line_size - get the safe D-cache line size across all CPUs
  */
 	.macro	dcache_line_size, reg, tmp
+
+	// read_ctr: line 265
+
 	read_ctr	\tmp
 	ubfm		\tmp, \tmp, #16, #19	// cache line size encoding
 	mov		\reg, #4		// bytes per word
@@ -476,12 +498,25 @@ USER(\label, ic	ivau, \tmp2)			// invalidate I line PoU
 	 * PIE binary. This requires cooperation from the linker script, which
 	 * must emit the lo32/hi32 halves individually.
 	 */
+	// 인자로 전달한 값을 리틀 엔디안 형태의 64비트 데이터로 변환
 	.macro	le64sym, sym
+
+	// .macro -> GNU assembler 내에 정의된 키워드
+	// https://sourceware.org/binutils/docs/as/Macro.html#Macro
 
 	// 6ad1fe5d9077a1ab40bf74b61994d2e770b00b14
 	// Image Header에 빌드 타임 상수를 생성하는 기존 링커 방식이 동작하지
-        // 않아 생성된 매크로이다.
+    // 않아 생성된 매크로이다.
+	// .long is the same as ‘.int’. See .int.
+
+	// le64sym	_kernel_offset_le
+	// 1. sym() -> _kernel_offset_le
+	// 2. _kernel_offset_le_lo32
+	// 4 bytes 데이터 정의
 	.long	\sym\()_lo32
+
+	// 3. _kernel_offset_le_hi32
+	// 4 bytes 데이터 정의
 	.long	\sym\()_hi32
 	.endm
 

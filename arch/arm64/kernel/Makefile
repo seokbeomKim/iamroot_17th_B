@@ -23,6 +23,7 @@ obj-y			:= debug-monitors.o entry.o irq.o fpsimd.o		\
 
 targets			+= efi-entry.o
 
+# *.stub.o 파일로 생성되는 오브젝트 파일 내에 있는 모든 심볼들에 대해, __efistub_ prefix를 추가한다.
 OBJCOPYFLAGS := --prefix-symbols=__efistub_
 $(obj)/%.stub.o: $(obj)/%.o FORCE
 	$(call if_changed,objcopy)

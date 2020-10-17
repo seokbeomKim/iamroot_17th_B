@@ -110,7 +110,13 @@ SECTIONS
 
 	.head.text : {
 		_text = .;
+
+		// HEAD_TEXT: include/asm-generic/vmlinux.lds.h:619
+		// .head.text 섹션에 해당하는 코드를 linking 시에 본 섹션으로 배치함
 		HEAD_TEXT
+
+		// HEAD_TEXT
+		// #define HEAD_TEXT  KEEP(*(.head.text))
 	}
 	.text : {			/* Real text segment		*/
 		_stext = .;		/* Text and read-only data	*/
@@ -242,6 +248,8 @@ SECTIONS
 
 	. = ALIGN(PAGE_SIZE);
 	init_pg_dir = .;
+	// 커널 코드 사이즈 만큼 pg_directory 사이즈 정의
+	// 기존 (idmap_pg_dir + swapper_pg_dir) 등의 필요한 페이지 사이즈 만큼 할당
 	. += INIT_DIR_SIZE;
 	init_pg_end = .;
 

@@ -135,6 +135,10 @@ efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 	// EFI pe entry를 통해 efi를 사용할 경우의 이미지 로딩 주소,
 	// FDT 등의 정보를 가지고 온다.
 	// 이러한 정보들은 부트로더 레벨에서 이미 준비된다.
+	//
+	// EFI로써 부트될 경우 참고할 수 있는 부트로더 소스코드 위치:
+	// do_bootefi() in u-boot/cmd/bootefi.c
+	//
 	efi_loaded_image_t *image;
 	efi_status_t status;
 	unsigned long image_addr;
@@ -325,6 +329,8 @@ efi_status_t __efiapi efi_pe_entry(efi_handle_t handle,
 	if (IS_ENABLED(CONFIG_ARM))
 		efi_handle_post_ebs_state();
 
+	// [iamroot]
+	// arch/arm64/kernel/efi-entry.S
 	efi_enter_kernel(image_addr, fdt_addr, fdt_totalsize((void *)fdt_addr));
 	/* not reached */
 

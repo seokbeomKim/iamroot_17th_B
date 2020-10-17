@@ -67,7 +67,9 @@
 	// __HEAD는 .head.text 라는 섹션을 포함한다. .head.text는
 	// ARM64 전용 링커스크립트를 살펴본다.
 	//
+	// include/linux/init.h:95
 	//    #define __HEAD	.section	".head.text","ax"
+	// 참고 링커 스크립트: arch/arm64/kernel/vmlinux.lds.S:111
 	__HEAD
 _head:
 	/*
@@ -81,6 +83,7 @@ _head:
 	add	x13, x18, #0x16
 	b	primary_entry
 #else
+	// line 136: SYM_CODE_START(primary_entry)
 	b	primary_entry			// branch to kernel start, magic
 
 	// [iamroot] pe_header
@@ -181,12 +184,22 @@ SYM_CODE_START_LOCAL(preserve_boot_args)
 	//
 	// U-boot 코드에서 FDT(device tree) 로드하여 물리주소 설정하는
 	// 부분 찾아볼 것
+
+	// 이미 부트로더로부터 x0에 FDT가 위치한 물리주소가 저장되어 있다.
 	mov	x21, x0				// x21=FDT
 
+	// $kernel/arch/arm64/include/asm/assembler.h:188
+	// $kernel/arch/arm64/kernel/setup.c:83
+	// boot_args[4] 중에서 0만 사용되며, 나머지는 reserved
 	adr_l	x0, boot_args			// record the contents of
+
+	// STP X9, X8 [x4]: Store the doubleword in X9 to address X4 and
+	// stores the doubleword in X8 to address X4 + 8
+
 	stp	x21, x1, [x0]			// x0 .. x3 at kernel entry
 	stp	x2, x3, [x0, #16]
 
+	// Data Memory Barrier
 	dmb	sy				// needed before dc ivac with
 						// MMU off
 
@@ -335,6 +348,7 @@ SYM_CODE_END(preserve_boot_args)
  *   - first few MB of the kernel linear mapping to jump to once the MMU has
  *     been enabled
  */
+// MMU 활성화하기 위한 페이지 테이블 생성
 SYM_FUNC_START_LOCAL(__create_page_tables)
 	mov	x28, lr
 
@@ -368,19 +382,25 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	 * Create the identity mapping.
 	 */
 	adrp	x0, idmap_pg_dir
+
+	// arm64/vmlinux.lds.S:49 (#define IDMAP_TEXT 참고)
 	adrp	x3, __idmap_text_start		// __pa(__idmap_text_start)
 
-#ifdef CONFIG_ARM64_VA_BITS_52
+#ifdef CONFIG_ARM64_VA_BITS_52 // page size => 4k
 	mrs_s	x6, SYS_ID_AA64MMFR2_EL1
 	and	x6, x6, #(0xf << ID_AA64MMFR2_LVA_SHIFT)
 	mov	x5, #52
-	cbnz	x6, 1f
+
+	cbnz	x6, 1f		; compare and branch if non-zero then go to line 384
 #endif
 	mov	x5, #VA_BITS_MIN
 1:
-	adr_l	x6, vabits_actual
+	adr_l	x6, vabits_actual ; c-symbol
 	str	x5, [x6]
 	dmb	sy
+
+	// Clean and Invalidate by Virtual Address to Point of Coherency
+	// Reference. (11.5 cache maintenance)
 	dc	ivac, x6		// Invalidate potentially stale cache line
 
 	/*
@@ -396,7 +416,7 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	 * the physical address of __idmap_text_end.
 	 */
 	adrp	x5, __idmap_text_end
-	clz	x5, x5
+	clz	x5, x5 // clz: counts leading zero bits in a register.
 	cmp	x5, TCR_T0SZ(VA_BITS)	// default T0SZ small enough?
 	b.ge	1f			// .. then skip VA range extension
 
@@ -423,6 +443,7 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	mov	x4, EXTRA_PTRS
 	create_table_entry x0, x3, EXTRA_SHIFT, x4, x5, x6
 #else
+	// 최근에는 default 'VA_BITS == 48' 로 사용
 	/*
 	 * If VA_BITS == 48, we don't have to configure an additional
 	 * translation level, but the top-level table has more entries.
@@ -435,6 +456,7 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	mov	x5, x3				// __pa(__idmap_text_start)
 	adr_l	x6, __idmap_text_end		// __pa(__idmap_text_end)
 
+	// idmap 위한 메모리 맵핑
 	map_memory x0, x1, x3, x6, x7, x3, x4, x10, x11, x12, x13, x14
 
 	/*
@@ -449,6 +471,7 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	sub	x6, x6, x3			// _end - _text
 	add	x6, x6, x5			// runtime __va(_end)
 
+	// init_pg_dir을 위한 메모리 맵핑
 	map_memory x0, x1, x5, x6, x7, x3, x4, x10, x11, x12, x13, x14
 
 	/*
