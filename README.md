@@ -96,3 +96,17 @@
   * 커널 분석 환경 구성
   * head.S 내에서 사용하는 매크로 분석
   * 2.1.4 페이지 테이블 생성
+
+### 9주차
+
+* 2020.10.17, 온라인 세션 (with Zoom)
+
+* head.S 에서 사용하는 기본 ARM 어셈블리 및 매크로 분석
+
+  * preserve_boot_args (head.S)
+  * __inval_dcache_area (cache.S)
+  * read_ctr 매크로
+    * alternative_if_not 관련 내용으로 분석
+	  - http://jake.dothome.co.kr/alternative/
+	* CPU capability
+	  - http://jake.dothome.co.kr/cpucaps64/
