@@ -217,6 +217,11 @@ static inline void apply_alternatives_module(void *start, size_t length) { }
 .macro alternative_else
 662:
 	.if .Lasm_alt_mode==0
+	/*
+	.subsection 1 전에는 deafult로 .subSection 0 이다.
+	.subsection directive 및 .previous를 이해할 수 있는 예제로,
+	https://sourceware.org/binutils/docs/as/Previous.html#Previous 를 살펴보면 이해하기 쉽다.
+	 */
 	.subsection 1
 	.else
 	.previous

@@ -241,15 +241,32 @@ SECTIONS
 	}
 
 	PECOFF_EDATA_PADDING
+	// __initdata_begin => line 166
 	__pecoff_data_rawsize = ABSOLUTE(. - __initdata_begin);
 	_edata = .;
 
 	BSS_SECTION(0, 0, 0)
 
 	. = ALIGN(PAGE_SIZE);
+	// Q. ALIGN이 함수 인가요?
+	// (o) ~ Linker script 지시어: https://www.keil.com/support/man/docs/armasm/armasm_dom1361290002364.htm
+	// https://stackoverflow.com/questions/8458084/align-in-linker-scripts
+	// (x) ~ 이곳에서의 ALIGN은 커널에 정의되어 있는 ALIGN이 아님
+	//        $kernel_stable/include/linux/kernel.h:33 에 아래와 같이 정의되어 있습니다. ~
+	// 		  #define ALIGN(x, a)		__ALIGN_KERNEL((x), (a))
+
 	init_pg_dir = .;
 	// 커널 코드 사이즈 만큼 pg_directory 사이즈 정의
 	// 기존 (idmap_pg_dir + swapper_pg_dir) 등의 필요한 페이지 사이즈 만큼 할당
+	//
+	// $kernel/arch/arm64/include/asm/kernel-pgtable.h:89
+	// #define INIT_DIR_SIZE (PAGE_SIZE * EARLY_PAGES(KIMAGE_VADDR + TEXT_OFFSET, _end))
+	//
+	// EARLY_PAGES:
+	// #define EARLY_PAGES(vstart, vend) ( 1 			/* PGDIR page */				\
+	//		+ EARLY_PGDS((vstart), (vend)) 	/* each PGDIR needs a next level page table */	\
+	//		+ EARLY_PUDS((vstart), (vend))	/* each PUD needs a next level page table */	\
+	//		+ EARLY_PMDS((vstart), (vend)))	/* each PMD needs a next level page table */
 	. += INIT_DIR_SIZE;
 	init_pg_end = .;
 

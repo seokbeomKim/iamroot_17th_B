@@ -139,7 +139,7 @@ SYM_FUNC_END(__clean_dcache_area_pou)
  *	- size    - size in question
  */
 SYM_FUNC_START_LOCAL(__dma_inv_area)
-SYM_FUNC_START_PI(__inval_dcache_area)
+SYM_FUNC_START_PI(__inval_dcache_area) // x0: init_pg_dir, x1: init_pg_len
 	/* FALLTHROUGH */
 
 // [iamroot]
@@ -155,7 +155,10 @@ SYM_FUNC_START_PI(__inval_dcache_area)
 //  BTI_C
 
 
-
+// https://ammonia3.tistory.com/10 :
+// __inval_dcache_area 설명
+// https://stackoverflow.com/questions/39971639/what-does-cacheline-aligned-mean :
+// cache alignment 설명
 
 /*
  *	__dma_inv_area(start, size)
@@ -173,12 +176,13 @@ SYM_FUNC_START_PI(__inval_dcache_area)
 	tst	x1, x3				// end cache line aligned?
 	bic	x1, x1, x3
 	b.eq	1f
-	dc	civac, x1			// clean & invalidate D / U line
+	cd	civac, x1			// clean & invalidate D / U line
 1:	tst	x0, x3				// start cache line aligned?
 	bic	x0, x0, x3
 	b.eq	2f
 	dc	civac, x0			// clean & invalidate D / U line
 	b	3f
+	/* civac, ivac이 구분 된 이유는 ...? (http://jake.dothome.co.kr/cache_clean_flush/ 참고하여서 판단해보기) */
 2:	dc	ivac, x0			// invalidate D / U line
 3:	add	x0, x0, x2
 	cmp	x0, x1

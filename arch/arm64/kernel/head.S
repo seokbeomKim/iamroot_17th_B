@@ -162,6 +162,8 @@ SYM_CODE_START(primary_entry)
 	// ===
 	bl	preserve_boot_args
 	bl	el2_setup			// Drop to EL1, w0=cpu_boot_mode
+
+	// 물리주소 오프셋 x23에 저장
 	adrp	x23, __PHYS_OFFSET
 	and	x23, x23, MIN_KIMG_ALIGN - 1	// KASLR offset, defaults to 0
 	bl	set_cpu_boot_mode_flag
@@ -224,7 +226,8 @@ SYM_CODE_END(preserve_boot_args)
  * Corrupts:	ptrs, tmp1, tmp2
  * Returns:	tbl -> next level table page address
  */
-	.macro	create_table_entry, tbl, virt, shift, ptrs, tmp1, tmp2
+	.macro	create_table_entry, tbl, virt, shift,       ptrs, tmp1, tmp2
+	// e.g. create_table_entry   x0,   x3, EXTRA_SHIFT,   x4,   x5,   x6
 	add	\tmp1, \tbl, #PAGE_SIZE
 	phys_to_pte \tmp2, \tmp1
 	orr	\tmp2, \tmp2, #PMD_TYPE_TABLE	// address of next table and entry type
@@ -358,6 +361,8 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	 * the kernel image, and thus are clean to the PoC per the boot
 	 * protocol.
 	 */
+
+	//
 	adrp	x0, init_pg_dir
 	adrp	x1, init_pg_end
 	sub	x1, x1, x0
@@ -368,14 +373,18 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	 */
 	adrp	x0, init_pg_dir
 	adrp	x1, init_pg_end
-	sub	x1, x1, x0
-1:	stp	xzr, xzr, [x0], #16
+	sub	x1, x1, x0  // x1: init_pg_len
+	// https://imaznie.tistory.com/55 :
+	// [base], #imm : Post-indexed addressing means that the address is the value in the 64-bit base register,
+	// and the sum of the  address and the offset is then written back to the base register.
+1:	stp	xzr, xzr, [x0], #16 // xzr : 0 대신
 	stp	xzr, xzr, [x0], #16
 	stp	xzr, xzr, [x0], #16
 	stp	xzr, xzr, [x0], #16
 	subs	x1, x1, #64
 	b.ne	1b
 
+	// $kernel_stable/arch/arm64/include/asm/kernel-pgtable.h:119
 	mov	x7, SWAPPER_MM_MMUFLAGS
 
 	/*
@@ -383,19 +392,19 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	 */
 	adrp	x0, idmap_pg_dir
 
-	// arm64/vmlinux.lds.S:49 (#define IDMAP_TEXT 참고)
+	// arm64/vmlinux.lds.S:49 (#define IDMAP_TEXT 참고; kernel/vmlinux.lds.h:34)
 	adrp	x3, __idmap_text_start		// __pa(__idmap_text_start)
 
 #ifdef CONFIG_ARM64_VA_BITS_52 // page size => 4k
-	mrs_s	x6, SYS_ID_AA64MMFR2_EL1
+	mrs_s	x6, SYS_ID_AA64MMFR2_EL1 // AArch64 Memory Model Feature Register 2
 	and	x6, x6, #(0xf << ID_AA64MMFR2_LVA_SHIFT)
 	mov	x5, #52
 
-	cbnz	x6, 1f		; compare and branch if non-zero then go to line 384
+	cbnz	x6, 1f		; compare and branch if non-zero then go to line 402 (forward label 1:)
 #endif
-	mov	x5, #VA_BITS_MIN
+	mov	x5, #VA_BITS_MIN ; 기본값 48
 1:
-	adr_l	x6, vabits_actual ; c-symbol
+	adr_l	x6, vabits_actual ; c-symbol (reference: https://patchwork.kernel.org/project/linux-arm-kernel/patch/20190807155524.5112-7-steve.capper@arm.com/)
 	str	x5, [x6]
 	dmb	sy
 
@@ -425,7 +434,7 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	dmb	sy
 	dc	ivac, x6		// Invalidate potentially stale cache line
 
-#if (VA_BITS < 48)
+#if (VA_BITS < 48)		// 최근에는 default 'VA_BITS == 48' 이므로 거의 타지 않는 code
 #define EXTRA_SHIFT	(PGDIR_SHIFT + PAGE_SHIFT - 3)
 #define EXTRA_PTRS	(1 << (PHYS_MASK_SHIFT - EXTRA_SHIFT))
 
@@ -442,18 +451,20 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 
 	mov	x4, EXTRA_PTRS
 	create_table_entry x0, x3, EXTRA_SHIFT, x4, x5, x6
-#else
-	// 최근에는 default 'VA_BITS == 48' 로 사용
+#else // 최근에는 default 'VA_BITS == 48' 로 사용
 	/*
 	 * If VA_BITS == 48, we don't have to configure an additional
 	 * translation level, but the top-level table has more entries.
 	 */
 	mov	x4, #1 << (PHYS_MASK_SHIFT - PGDIR_SHIFT)
+
+	// PTRS_PER_PGD => $kernel/arch/arm64/include/asm/pgtable-hwdef.h :)
+	// idmap_ptrs_per_pgd: u64(PTRS_PER_PGD) => $kernel/arch/arm64/mm/mmu.c:
 	str_l	x4, idmap_ptrs_per_pgd, x5
 #endif
 1:
 	ldr_l	x4, idmap_ptrs_per_pgd
-	mov	x5, x3				// __pa(__idmap_text_start)
+	mov	x5, x3	// __pa(__idmap_text_start)
 	adr_l	x6, __idmap_text_end		// __pa(__idmap_text_end)
 
 	// idmap 위한 메모리 맵핑
@@ -462,12 +473,14 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	/*
 	 * Map the kernel image (starting with PHYS_OFFSET).
 	 */
+
+	// memory layout ??
 	adrp	x0, init_pg_dir
 	mov_q	x5, KIMAGE_VADDR + TEXT_OFFSET	// compile time __va(_text)
 	add	x5, x5, x23			// add KASLR displacement
 	mov	x4, PTRS_PER_PGD
-	adrp	x6, _end			// runtime __pa(_end)
-	adrp	x3, _text			// runtime __pa(_text)
+	adrp	x6, _end		// runtime __pa(_end)
+	adrp	x3, _text		// runtime __pa(_text)
 	sub	x6, x6, x3			// _end - _text
 	add	x6, x6, x5			// runtime __va(_end)
 
@@ -483,7 +496,10 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 
 	adrp	x0, idmap_pg_dir
 	adrp	x1, idmap_pg_end
+	// idmap_pg_end - idmap_pg_dir = IDMAP_DIR_SIZE ?
 	sub	x1, x1, x0
+
+	// __inval_dcache_area: $kernel/arch/arm64/mm/cache.S:142
 	bl	__inval_dcache_area
 
 	adrp	x0, init_pg_dir
@@ -748,6 +764,7 @@ SYM_FUNC_END(el2_setup)
  * in w0. See arch/arm64/include/asm/virt.h for more info.
  */
 SYM_FUNC_START_LOCAL(set_cpu_boot_mode_flag)
+//  adr_l은 매크로 include/asm/assembler.h, __boot_cput_mode: include/asm/virt.h (extern 된 전역 변수)
 	adr_l	x1, __boot_cpu_mode
 	cmp	w0, #BOOT_CPU_MODE_EL2
 	b.ne	1f
@@ -810,7 +827,7 @@ SYM_FUNC_END(secondary_holding_pen)
 	 */
 SYM_FUNC_START(secondary_entry)
 	bl	el2_setup			// Drop to EL1
-	bl	set_cpu_boot_mode_flag
+	bl	set_cpu_boot_mode_flag // w0 __boot_cpu_mode에 있는 배열 값을 가지고 나
 	b	secondary_startup
 SYM_FUNC_END(secondary_entry)
 

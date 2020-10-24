@@ -186,7 +186,7 @@ lr	.req	x30		// link register
 	 * @sym: name of the symbol
 	 */
 	// adr_l 매크로가 만들어진 이유
-	// https://pㄴatchwork.kernel.org/project/kvm/patch/20170805205222.19868-2-ard.biesheuvel@linaro.org/
+	// https://patchwork.kernel.org/project/kvm/patch/20170805205222.19868-2-ard.biesheuvel@linaro.org/
 	.macro	adr_l, dst, sym
 	// adrp : PC 기준으로 심볼의 위치를 계산 (page 기준)
 	// adr : +- 4gb 까지밖에 안되서
@@ -280,6 +280,86 @@ alternative_endif
 
 	// http://jake.dothome.co.kr/alternative/
 	// - alternative_{if .. endif}
+
+	.macro  read_ctr, reg
+    .set .Lasm_alt_mode, 0
+    .pushsection .altinstructions, "a"
+    altinstruction_entry 661f, 663f, ARM64_MISMATCHED_CACHE_TYPE , 662f-661f, 664f-663f
+    .popsection
+661:
+ 	mrs \reg, ctr_el0           // read CTR
+    nop
+662:
+    .if .Lasm_alt_mode==0
+    .subsection 1
+    .else
+    .previous
+    .endif
+663:
+	ldr_l   \reg, arm64_ftr_reg_ctrel0 + ARM64_FTR_SYSVAL
+664:
+    .if .Lasm_alt_mode==0
+    .previous
+    .endif
+    .org    . - (664b-663b) + (662b-661b)
+    .org    . - (662b-661b) + (664b-663b)
+.endm
+
+(http://jake.dothome.co.kr/alternative/, https://lwn.net/Articles/164121/)
+코드 패치는 SMP initializatino 시점에 일어난다는 내용을 알 수 있다.
+start_kernel() -> kernel_init() -> kernel_init_freeable() -> smp_init() -> smp_cpus_done() -> apply_alternatives_all()
+
+void __init apply_alternatives_all(void)
+{
+    /* better not try code patching on a live SMP system */
+    stop_machine(__apply_alternatives_multi_stop, NULL, cpu_online_mask);
+}
+
+  __apply_alternatives(&region, false, remaining_capabilities);
+
+
+        origptr = ALT_ORIG_PTR(alt);
+        updptr = is_module ? origptr : lm_alias(origptr);
+        nr_inst = alt->orig_len / AARCH64_INSN_SIZE;
+
+        if (alt->cpufeature < ARM64_CB_PATCH)
+            alt_cb = patch_alternative;
+        else
+            alt_cb  = ALT_REPL_PTR(alt);
+
+////
+struct alt_instr {
+    s32 orig_offset;    /* offset to original instruction */
+    s32 alt_offset;     /* offset to replacement instruction */
+    u16 cpufeature;     /* cpufeature bit set for replacement */
+    u8  orig_len;       /* size of original instruction(s) */
+    u8  alt_len;        /* size of new instruction(s), <= orig_len */
+};
+altinstruction_entry 661f, 663f, ARM64_MISMATCHED_CACHE_TYPE , 662f-661f, 664f-663f
+
+들어가는 data를 보면
+
+orig_offset = 661f 인데, 이는 Local label로써, 661:의 위치를 가르킨다.
+alt_offset = 663f 인데, 이는 Local label로써, 663:의 위치를 가르킨다.
+cpufeature는 ARM64_MISMATCHED_CACHE_TYPE(31) 이다.
+orig_len은 662: section 위치 - 661: secion 이다.
+alt_len은 664: section 위치 - 663: section이다.
+
+static void patch_alternative(struct alt_instr *alt,
+                  __le32 *origptr, __le32 *updptr, int nr_inst)
+{
+    __le32 *replptr;
+    int i;
+
+    replptr = ALT_REPL_PTR(alt); // 663 section 시작 주소가 나온다.
+    for (i = 0; i < nr_inst; i++) { //
+        u32 insn;
+
+        insn = get_alt_insn(alt, origptr + i, replptr + i); // 패치할 instruction을 구한다. (get_alt_insn은 보정 동작으로 보임.)
+        updptr[i] = cpu_to_le32(insn); // 661 section에 instruction을 쓴다. 코드 패치 동작.
+    }
+}
+//
 alternative_if_not ARM64_MISMATCHED_CACHE_TYPE
 	mrs	\reg, ctr_el0			// read CTR
 	nop
@@ -308,8 +388,17 @@ alternative_endif
 	// read_ctr: line 265
 
 	read_ctr	\tmp
+/*
+DminLine 필드 – bits[19:16]
+모든 cpu에 대해 필드 값은 항상 작은 값만 허용한다.
+유저 액세스를 허용하고 strict 체크한다.
+Log2 of the number of words in the smallest cache line of all the data and unified caches that the core controls
+
+*/
 	ubfm		\tmp, \tmp, #16, #19	// cache line size encoding
 	mov		\reg, #4		// bytes per word
+	// bytes 단위이면, #5여야 하지 않은가? \reg = (\tmp << 4) ,,
+	// * 16 = 2^4? (???)
 	lsl		\reg, \reg, \tmp	// actual cache line size
 	.endm
 

@@ -573,10 +573,14 @@
 #define SCTLR_EL1_ITD		(BIT(7))
 #define SCTLR_EL1_CP15BEN	(BIT(5))
 #define SCTLR_EL1_SA0		(BIT(4))
-
+// https://developer.arm.com/docs/ddi0601/d/aarch64-system-registers/sctlr_el1
 #define SCTLR_EL1_RES1	((BIT(11)) | (BIT(20)) | (BIT(22)) | (BIT(28)) | \
 			 (BIT(29)))
-
+// 11) EOS: bit [11] Exception Exit is Context Synchronizing
+// 20) TSCXT: Trap EL0 Access to the SCXTNUM_EL0 register, when EL0 is using AArch64.
+// 22) EIS: Exception Entry is Context Synchronizing.
+// 28) nTLSMD:No Trap Load Multiple and Store Multiple to Device-nGRE/Device-nGnRE/Device-nGnRnE memory.
+// 29)
 #ifdef CONFIG_CPU_BIG_ENDIAN
 #define ENDIAN_SET_EL1		(SCTLR_EL1_E0E | SCTLR_ELx_EE)
 #else
