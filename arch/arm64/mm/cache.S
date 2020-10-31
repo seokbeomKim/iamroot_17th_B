@@ -165,10 +165,7 @@ SYM_FUNC_START_PI(__inval_dcache_area) // x0: init_pg_dir, x1: init_pg_len
  *	- start   - virtual start address of region
  *	- size    - size in question
  */
-	// x1 <- boot_args의 크기 (#32)
-	// x0 <- (boot_args[0])
-
-	add	x1, x1, x0			// x1 <- boot_args 의 끝점
+	add	x1, x1, x0
 
 	// assembler.h:294
 	dcache_line_size x2, x3

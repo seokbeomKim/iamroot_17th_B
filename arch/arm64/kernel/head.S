@@ -167,6 +167,9 @@ SYM_CODE_START(primary_entry)
 	adrp	x23, __PHYS_OFFSET
 	and	x23, x23, MIN_KIMG_ALIGN - 1	// KASLR offset, defaults to 0
 	bl	set_cpu_boot_mode_flag
+
+	// [iamroot] 2020/10/31
+	// __create_page_tables 부터 진행
 	bl	__create_page_tables
 	/*
 	 * The following calls CPU setup code, see arch/arm64/mm/proc.S for
@@ -282,22 +285,30 @@ SYM_CODE_END(preserve_boot_args)
  * Preserves:	vstart, vend, shift, ptrs
  * Returns:	istart, iend, count
  */
+
+ /*
+ 	.macro map_memory, tbl, rtbl, vstart, vend, flags, phys, pgds, istart, iend, tmp, count, sv
+	add \rtbl, \tbl, #PAGE_SIZE
+	mov \sv, \rtbl
+	mov \count, #0
+	compute_indices \vstart, \vend, #PGDIR_SHIFT, \pgds, \istart, \iend, \count
+*/
 	.macro compute_indices, vstart, vend, shift, ptrs, istart, iend, count
-	lsr	\iend, \vend, \shift
-	mov	\istart, \ptrs
-	sub	\istart, \istart, #1
+	lsr	\iend, \vend, \shift // index값을 얻어온다.
+	mov	\istart, \ptrs //(512)
+	sub	\istart, \istart, #1 // 511 (11111111)
 	and	\iend, \iend, \istart	// iend = (vend >> shift) & (ptrs - 1)
-	mov	\istart, \ptrs
-	mul	\istart, \istart, \count
+	mov	\istart, \ptrs // 512
+	mul	\istart, \istart, \count // 0
 	add	\iend, \iend, \istart	// iend += (count - 1) * ptrs
-					// our entries span multiple tables
+					// our entries span multiple tables (iend)
 
-	lsr	\istart, \vstart, \shift
-	mov	\count, \ptrs
-	sub	\count, \count, #1
-	and	\istart, \istart, \count
+	lsr	\istart, \vstart, \shift // index값을 얻어온다.
+	mov	\count, \ptrs// count = 512
+	sub	\count, \count, #1 // masking
+	and	\istart, \istart, \count // 보정
 
-	sub	\count, \iend, \istart
+	sub	\count, \iend, \istart // iend - start (갯수)
 	.endm
 
 /*
@@ -351,8 +362,25 @@ SYM_CODE_END(preserve_boot_args)
  *   - first few MB of the kernel linear mapping to jump to once the MMU has
  *     been enabled
  */
+
 // MMU 활성화하기 위한 페이지 테이블 생성
+// SYM_FUNC_START_LOCAL 심볼 정보:
+// 	#define SYM_FUNC_START_LOCAL(name)
+//			SYM_START(name, SYM_L_LOCAL, SYM_A_ALIGN)
+// 	#endif
+//
+// 커널이 컴파일 될 때 준비되는 5개 페이지 테이블은 다음과 같다.
+// http://jake.dothome.co.kr/head-64/
+// 1. init_pg_dir
+// 2. swapper_pg_dir
+// 3. reserved_ttbr
+// 4. tramp_pg_dir: user <-> kernel
+// 5. idmap_pg_dir
 SYM_FUNC_START_LOCAL(__create_page_tables)
+	// procedure return address(Linker Register의 값)을 x28에 저장한다.
+	// bl(bl __inval_dcache_area)의 경우, 자동으로 return address 설정 x
+	// 만약, 본 프로시저에서 bl이 사용되지 않는다면, mov x28, lr은 불필요
+	// mov x28, lr + ret x28
 	mov	x28, lr
 
 	/*
@@ -361,11 +389,9 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	 * the kernel image, and thus are clean to the PoC per the boot
 	 * protocol.
 	 */
-
-	//
-	adrp	x0, init_pg_dir
+ 	adrp	x0, init_pg_dir
 	adrp	x1, init_pg_end
-	sub	x1, x1, x0
+	sub	x1, x1, x0 // x1 <- init_pg_len
 	bl	__inval_dcache_area
 
 	/*
@@ -377,20 +403,49 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	// https://imaznie.tistory.com/55 :
 	// [base], #imm : Post-indexed addressing means that the address is the value in the 64-bit base register,
 	// and the sum of the  address and the offset is then written back to the base register.
-1:	stp	xzr, xzr, [x0], #16 // xzr : 0 대신
+	// stp xzr, xzr, [x0], #16:
+
+	;; xzr: zero register (X: 64bits)
+	;; [base, #imm]! Pre-indexed
+	;; addressing means that the address is the sum of the value in
+	;; the 64-bit base register and an offset, and the address is
+	;; then writtenback to the base register.
+	;; 64개씩 page table entry 초기화
+1:	stp	xzr, xzr, [x0], #16
 	stp	xzr, xzr, [x0], #16
 	stp	xzr, xzr, [x0], #16
 	stp	xzr, xzr, [x0], #16
+
+	// Q. xzr 사용한 이유가 성능 향상 때문인지?
+	// immediate vs. xzr ?
+	// https://stackoverflow.com/questions/42788696/why-might-one-use-the-xzr-register-instead-of-the-literal-0-on-armv8#:~:text=What%20xzr%20gives%20us%2C%20however,to%20hold%20'real'%20data.
+	// is access to a zero-valued operand without having to load
+	// and occupy a real register. This has the dual benefit of one
+	// less instruction, and one more register available to hold
+	// 'real' data.
+
+	// sub vs. subs: condition flags 사용하여 이후 아래처럼 branch 가능
 	subs	x1, x1, #64
-	b.ne	1b
+ 	b.ne	1b // end of loop
 
 	// $kernel_stable/arch/arm64/include/asm/kernel-pgtable.h:119
+	//
+	// SWAPPER_MM_MMUFLAGS의 값은 ARM64_SWAPPER_USES_SECTION_MAPS config에 따라 달라지는데,
+	// commit: b433dce056d3814dc4b33e5a8a533d6401ffcfb0
+	// 4K page size로 swapper/idmap 을 생성하기 위해 section map 을 사용할 경우에 SWAPPER_MM_MMUFLAGS로 설정된다.
+	//
 	mov	x7, SWAPPER_MM_MMUFLAGS
+
+	// init-pgdir 초기화 완료
 
 	/*
 	 * Create the identity mapping.
 	 */
 	adrp	x0, idmap_pg_dir
+
+	// [iamroot]
+	// idmap 개념: 가상 주소와 물리 주소가 1:1로 매핑되어 사용될 때 필요한 테이블이며,
+	// MMU 활성화를 위해 "임시로" 사용하는 페이지 테이블이다.
 
 	// arm64/vmlinux.lds.S:49 (#define IDMAP_TEXT 참고; kernel/vmlinux.lds.h:34)
 	adrp	x3, __idmap_text_start		// __pa(__idmap_text_start)
@@ -402,8 +457,22 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 
 	cbnz	x6, 1f		; compare and branch if non-zero then go to line 402 (forward label 1:)
 #endif
-	mov	x5, #VA_BITS_MIN ; 기본값 48
+	mov	x5, #VA_BITS_MIN ; 기본값 48 이므로 VA_BITS가 52로 설정되지 않는 경우에는 여기서 시작됨
 1:
+	//
+	// << vabits_actual >>
+	// arch/arm64/mm/mmu.c
+	// u64 __section(".mmuoff.data.write") vabits_actual;
+	// EXPORT_SYMBOL(vabits_actual);
+	//
+	// << adr_l macro >>
+	// $kernel/arch/arm64/include/asm/assembler.h:188
+	// Q. ADRP 명령어의 제한으로 인해 사용할 수 밖에 없는 매크로 ?
+	// --
+	// .macro	adr_l, dst, sym
+	//	adrp	\dst, \sym
+	//	add	\dst, \dst, :lo12:\sym ;; \sym의 low 12 bits를 \dst와 더하여 \dst에 저장한다. (https://casionwoo.tistory.com/25 부분 참고)
+	//	.endm
 	adr_l	x6, vabits_actual ; c-symbol (reference: https://patchwork.kernel.org/project/linux-arm-kernel/patch/20190807155524.5112-7-steve.capper@arm.com/)
 	str	x5, [x6]
 	dmb	sy
@@ -426,9 +495,14 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	 */
 	adrp	x5, __idmap_text_end
 	clz	x5, x5 // clz: counts leading zero bits in a register.
+
+	// TCR_T0SZ: Reference Manual 에 따르면, The size offset of the memory region addressed by TTBR0_ELx.
+	// #define TCR_T0SZ(x)		((UL(64) - (x)) << TCR_T0SZ_OFFSET)
 	cmp	x5, TCR_T0SZ(VA_BITS)	// default T0SZ small enough?
 	b.ge	1f			// .. then skip VA range extension
 
+	// http://jake.dothome.co.kr/head-64/
+	// - Identity 매핑 참고.
 	adr_l	x6, idmap_t0sz
 	str	x5, [x6]
 	dmb	sy
@@ -456,6 +530,9 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	 * If VA_BITS == 48, we don't have to configure an additional
 	 * translation level, but the top-level table has more entries.
 	 */
+
+	// arch/arm64/include/asm/kernel-pgtable.h:40
+	// arch/arm64/include/asm/pgtable-hwdef.h::69
 	mov	x4, #1 << (PHYS_MASK_SHIFT - PGDIR_SHIFT)
 
 	// PTRS_PER_PGD => $kernel/arch/arm64/include/asm/pgtable-hwdef.h :)
@@ -463,20 +540,41 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 	str_l	x4, idmap_ptrs_per_pgd, x5
 #endif
 1:
-	ldr_l	x4, idmap_ptrs_per_pgd
+	// 1: idmap_pg_dir 테이블에 __idmap_text_start 주소부터 __idmap_text_end 영역까지
+	// 가상 주소와 물리 주소가 일치하는 identity 매핑을 생성한다.
+
+	// *idmap_ptrs_per_pgd -> x4
+	ldr_l	x4, idmap_ptrs_per_pgd		// $kernel/arch/arm64/mm/mmu.c:43
+
 	mov	x5, x3	// __pa(__idmap_text_start)
 	adr_l	x6, __idmap_text_end		// __pa(__idmap_text_end)
 
 	// idmap 위한 메모리 맵핑
+	// x4 <- idmap_ptrs_per_pgd (512)
 	map_memory x0, x1, x3, x6, x7, x3, x4, x10, x11, x12, x13, x14
+
+
+/*
+	 *	tbl:	location of page table
+ *	rtbl:	address to be used for first level page table entry (typically tbl + PAGE_SIZE)
+ *	vstart:	start address to map
+ *	vend:	end address to map - we map [vstart, vend]
+ *	flags:	flags to use to map last level entries
+ *	phys:	physical address corresponding to vstart - physical memory is contiguous
+ *	pgds:	the number of pgd entries
+*/
 
 	/*
 	 * Map the kernel image (starting with PHYS_OFFSET).
 	 */
 
-	// memory layout ??
+	// TEXT_OFFSET에 대한 정의가 변경되어 기존에는 반드시 swapper page table을 위해 512k 가 보장되는
+	// offset 값을 가지게 되었지만, KASLR 개념이 커널에 도입된 이후에는 TEXT_OFFSET이 0x0으로 변경되며,
+	// 나중에 이와 관련된 코드들을 제거하기 위해서 점진적으로 제거 중에 있다.
 	adrp	x0, init_pg_dir
 	mov_q	x5, KIMAGE_VADDR + TEXT_OFFSET	// compile time __va(_text)
+
+	//  x23        stext() .. start_kernel()  physical misalignment/KASLR offset
 	add	x5, x5, x23			// add KASLR displacement
 	mov	x4, PTRS_PER_PGD
 	adrp	x6, _end		// runtime __pa(_end)
@@ -496,7 +594,7 @@ SYM_FUNC_START_LOCAL(__create_page_tables)
 
 	adrp	x0, idmap_pg_dir
 	adrp	x1, idmap_pg_end
-	// idmap_pg_end - idmap_pg_dir = IDMAP_DIR_SIZE ?
+	// idmap_pg_end - idmap_pg_dir = IDMAP_DIR_SIZE
 	sub	x1, x1, x0
 
 	// __inval_dcache_area: $kernel/arch/arm64/mm/cache.S:142
