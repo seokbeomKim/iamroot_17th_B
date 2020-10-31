@@ -110,3 +110,15 @@
 	  - http://jake.dothome.co.kr/alternative/
 	* CPU capability
 	  - http://jake.dothome.co.kr/cpucaps64/
+
+### 10주차
+
+* 2020.10.21, 온라인 세션 (with Zoom)
+
+### 11주차
+
+* 2020.10.31, 온라인 세션 (with Zoom)
+* __create_page_tables 분석
+  * init_pg_dir, idmap_pg_dir 초기화
+* 다음주 토의 내용
+  * idmap 에서 VA_BITS < 48 일 때 additional translation level 조정에 대해 토의
