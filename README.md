@@ -122,3 +122,15 @@
   * init_pg_dir, idmap_pg_dir 초기화
 * 다음주 토의 내용
   * idmap 에서 VA_BITS < 48 일 때 additional translation level 조정에 대해 토의
+
+### 12주차
+
+* 2020.11.07, 온라인 세션 (with Zoom)
+* create_page_tables 리뷰
+* __cpu_setup 분석
+* __primary_switch (__enable_mmu, __relocate_kernel RELR relocation apply 직전 까지 진행)
+* 다음 주 토의 내용
+ * __create_page_tables create_table_entry의 이해.
+ * __enable_mmu 내부
+   * phys_to_ttbr 매크로CONFIG_ARM64_PA_BITS_52 가 적용 될 때의 동작 이해
+   * offset_to_ttbr1 매크로CONFIG_ARM64_VA_BITS_52가 적용 될 때의 동작 이해
