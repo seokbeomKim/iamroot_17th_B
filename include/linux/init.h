@@ -92,7 +92,7 @@
 #define __memexitconst   __section(.memexit.rodata)
 
 /* For assembly routines */
-	#define __HEAD		.section	".head.text","ax"
+#define __HEAD		.section	".head.text","ax"
 #define __INIT		.section	".init.text","ax"
 #define __FINIT		.previous
 

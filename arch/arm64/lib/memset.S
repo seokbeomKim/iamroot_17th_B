@@ -25,6 +25,9 @@
  *	x0 - buf
  */
 
+/*
+[iamroot] .req => alias for a register
+*/
 dstin		.req	x0
 val		.req	w1
 count		.req	x2
@@ -43,27 +46,47 @@ tmp3w		.req	w9
 tmp3		.req	x9
 
 	.weak memset
+
+/*
+dstin		.req	x0  __bss_start
+val		.req	w1  xzr
+count		.req	x2  __bss_size
+tmp1		.req	x3
+tmp1w		.req	w3
+tmp2		.req	x4
+tmp2w		.req	w4
+zva_len_x	.req	x5
+zva_len		.req	w5
+zva_bits_x	.req	x6
+
+A_l		.req	x7
+A_lw		.req	w7
+dst		.req	x8
+tmp3w		.req	w9
+tmp3		.req	x9
+*/
 SYM_FUNC_START_ALIAS(__memset)
 SYM_FUNC_START_PI(memset)
 	mov	dst, dstin	/* Preserve return value.  */
 	and	A_lw, val, #255
+	//      A_lw = A_lw | (A_lw << #8)
 	orr	A_lw, A_lw, A_lw, lsl #8
 	orr	A_lw, A_lw, A_lw, lsl #16
-	orr	A_l, A_l, A_l, lsl #32
+	orr	A_l, A_l, A_l, lsl #32			// A_l: val을 8번 복사
 
 	cmp	count, #15
-	b.hi	.Lover16_proc
-	/*All store maybe are non-aligned..*/
-	tbz	count, #3, 1f
+	b.hi	.Lover16_proc		// 16 <
+	/*All store maybe are non-aligned..*/ //under 15(0xF)
+	tbz	count, #3, 1f			// count & ~(0x8)
 	str	A_l, [dst], #8
 1:
-	tbz	count, #2, 2f
+	tbz	count, #2, 2f			// count & ~(0x4)
 	str	A_lw, [dst], #4
 2:
-	tbz	count, #1, 3f
+	tbz	count, #1, 3f			// count & ~(0x2)
 	strh	A_lw, [dst], #2
 3:
-	tbz	count, #0, 4f
+	tbz	count, #0, 4f			// count & ~(0x1)
 	strb	A_lw, [dst]
 4:
 	ret
@@ -78,23 +101,23 @@ SYM_FUNC_START_PI(memset)
 * then adjust the dst aligned with 16.This process will make the current
 * memory address at alignment boundary.
 */
-	stp	A_l, A_l, [dst] /*non-aligned store..*/
+	stp	A_l, A_l, [dst] /*non-aligned store..*/ // it stores 16byte, but count must be 16 <.
 	/*make the dst aligned..*/
 	sub	count, count, tmp2
-	add	dst, dst, tmp2
+	add	dst, dst, tmp2		// (dst & 0xF) == 0
 
 .Laligned:
-	cbz	A_l, .Lzero_mem
+	cbz	A_l, .Lzero_mem		// check memset(dst, 0, ...);
 
 .Ltail_maybe_long:
 	cmp	count, #64
 	b.ge	.Lnot_short
 .Ltail63:
 	ands	tmp1, count, #0x30
-	b.eq	3f
+	b.eq	3f				// 48 <
 	cmp	tmp1w, #0x20
-	b.eq	1f
-	b.lt	2f
+	b.eq	1f				// 32 <
+	b.lt	2f				// 16 < < 32
 	stp	A_l, A_l, [dst], #16
 1:
 	stp	A_l, A_l, [dst], #16
@@ -106,7 +129,7 @@ SYM_FUNC_START_PI(memset)
 */
 3:
 	ands	count, count, #15
-	cbz	count, 4f
+	cbz	count, 4f				// no tail
 	add	dst, dst, count
 	stp	A_l, A_l, [dst, #-16]	/* Repeat some/all of last store. */
 4:
@@ -147,11 +170,11 @@ SYM_FUNC_START_PI(memset)
 	cmp	count, #128
 	b.lt	.Lnot_short /*count is at least  128 bytes*/
 
-	mrs	tmp1, dczid_el0
+	mrs	tmp1, dczid_el0   /* https://developer.arm.com/docs/ddi0595/h/aarch64-system-registers/dczid_el0#DZP_4 */
 	tbnz	tmp1, #4, .Lnot_short
 	mov	tmp3w, #4
 	and	zva_len, tmp1w, #15	/* Safety: other bits reserved.  */
-	lsl	zva_len, tmp3w, zva_len
+	lsl	zva_len, tmp3w, zva_len // get block size in byte zva_len =  4 << zva_len(block size in word)
 
 	ands	tmp3w, zva_len, #63
 	/*
@@ -168,14 +191,14 @@ SYM_FUNC_START_PI(memset)
 	b.lt	.Lnot_short		/* Not enough to reach alignment.  */
 	sub	zva_bits_x, zva_len_x, #1
 	neg	tmp2, dst
-	ands	tmp2, tmp2, zva_bits_x
+	ands	tmp2, tmp2, zva_bits_x  // tmp2: unaligned bytes for dc zva
 	b.eq	2f			/* Already aligned.  */
 	/* Not aligned, check that there's enough to copy after alignment.*/
 	sub	tmp1, count, tmp2
 	/*
 	* grantee the remain length to be ZVA is bigger than 64,
 	* avoid to make the 2f's process over mem range.*/
-	cmp	tmp1, #64
+	cmp	tmp1, #64		// zva align을 위해 남은 데이터 64 < for double check
 	ccmp	tmp1, zva_len_x, #8, ge	/* NZCV=0b1000 */
 	b.lt	.Lnot_short
 	/*
@@ -196,11 +219,11 @@ SYM_FUNC_START_PI(memset)
 2:
 	sub	count, count, zva_len_x
 3:
-	dc	zva, dst
+	dc	zva, dst	// DC zero by VA
 	add	dst, dst, zva_len_x
 	subs	count, count, zva_len_x
 	b.ge	3b
-	ands	count, count, zva_bits_x
+	ands	count, count, zva_bits_x // < zva_len
 	b.ne	.Ltail_maybe_long
 	ret
 SYM_FUNC_END_PI(memset)

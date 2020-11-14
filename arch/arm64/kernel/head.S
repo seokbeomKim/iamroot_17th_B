@@ -70,6 +70,8 @@
 	// include/linux/init.h:95
 	//    #define __HEAD	.section	".head.text","ax"
 	// 참고 링커 스크립트: arch/arm64/kernel/vmlinux.lds.S:111
+	// section 에 정의되어 있는 플래그는 아래 링크를 참고한다.
+	// https://sourceware.org/binutils/docs/as/Section.html
 	__HEAD
 _head:
 	/*
@@ -614,20 +616,21 @@ SYM_FUNC_END(__create_page_tables)
  *   x0 = __PHYS_OFFSET
  */
 SYM_FUNC_START_LOCAL(__primary_switched)
-	adrp	x4, init_thread_union
-	add	sp, x4, #THREAD_SIZE
-	adr_l	x5, init_task
+	adrp	x4, init_thread_union		//
+	add	sp, x4, #THREAD_SIZE		// arch/arm64/include/asm/memory.h
+	adr_l	x5, init_task			// init_task ?
 	msr	sp_el0, x5			// Save thread_info
 
 #ifdef CONFIG_ARM64_PTR_AUTH
 	__ptrauth_keys_init_cpu	x5, x6, x7, x8
 #endif
 
-	adr_l	x8, vectors			// load VBAR_EL1 with virtual
+	adr_l	x8, vectors			// load VBAR_EL1 with
+						// arch/arm64/kernel/entry.S
 	msr	vbar_el1, x8			// vector table address
 	isb
 
-	stp	xzr, x30, [sp, #-16]!
+	stp	xzr, x30, [sp, #-16]!		// x30 (?)
 	mov	x29, sp
 
 #ifdef CONFIG_SHADOW_CALL_STACK
@@ -641,14 +644,15 @@ SYM_FUNC_START_LOCAL(__primary_switched)
 	str_l	x4, kimage_voffset, x5		// physical mappings
 
 	// Clear BSS
-	adr_l	x0, __bss_start
-	mov	x1, xzr
+	adr_l	x0, __bss_start 	// dstin
+	mov	x1, xzr					// val:0
 	adr_l	x2, __bss_stop
-	sub	x2, x2, x0
-	bl	__pi_memset
+	sub	x2, x2, x0				// count
+	bl	__pi_memset			// __pi_memset: arch/arm64/lib/memset.S:46 참고
 	dsb	ishst				// Make zero page visible to PTW
 
 #ifdef CONFIG_KASAN
+	// arch/arm64/mm/kasan_init.c
 	bl	kasan_early_init
 #endif
 #ifdef CONFIG_RANDOMIZE_BASE
@@ -694,10 +698,9 @@ SYM_FUNC_START(el2_setup)
 						// 0b1: Use SP_ELx for Exception level ELx
 
 	mrs	x0, CurrentEL			// CurrentEL = Current Exception Level (Special-purpose Register)
+	// CurrentEL_EL -> arch/arm64/include/asm/ptrace.h
 	cmp	x0, #CurrentEL_EL2
 	b.eq	1f
-	// TODO SCTLR_EL1_RES1 사용
-	// EL1일 경우
 	mov_q	x0, (SCTLR_EL1_RES1 | ENDIAN_SET_EL1)
 	msr	sctlr_el1, x0
 	mov	w0, #BOOT_CPU_MODE_EL1		// This cpu booted in EL1
@@ -1093,7 +1096,7 @@ SYM_FUNC_START_LOCAL(__relocate_kernel)
 	 * address entry encodes 1 relocation. The subsequent bitmap entries
 	 * encode up to 63 relocations each, at subsequent offsets following
 	 * the last address entry.
-	 *
+	 * --> Note: Address A is ALIGNED(2)
 	 * The bitmap entries must have 1 in the least significant bit. The
 	 * assumption here is that an address cannot have 1 in lsb. Odd
 	 * addresses are not supported. Any odd addresses are stored in the RELA
@@ -1120,28 +1123,28 @@ SYM_FUNC_START_LOCAL(__relocate_kernel)
 	 */
 	ldr	w9, =__relr_offset		// offset to reloc table
 	ldr	w10, =__relr_size		// size of reloc table
-	add	x9, x9, x11			// __va(.relr)
+	add	x9, x9, x11				// __va(.relr)
 	add	x10, x9, x10			// __va(.relr) + sizeof(.relr)
 
-	sub	x15, x23, x24			// delta from previous offset
-	cbz	x15, 7f				// nothing to do if unchanged
-	mov	x24, x23			// save new offset
-
+	sub	x15, x23, x24			// delta from previous offset (??) KASLR과의 연관관계는???
+	cbz	x15, 7f					// nothing to do if unchanged (0이면 jump)
+	mov	x24, x23				// save new offset (??)
+	// x9: __(.relr),  x11 = *(x9)+8 relocate entry  x13 = x11+x23 x12 = *(x13)
 2:	cmp	x9, x10
 	b.hs	7f
-	ldr	x11, [x9], #8
-	tbnz	x11, #0, 3f			// branch to handle bitmaps
-	add	x13, x11, x23
-	ldr	x12, [x13]			// relocate address entry
-	add	x12, x12, x15
-	str	x12, [x13], #8			// adjust to start of bitmap
-	b	2b
-
-3:	mov	x14, x13
-4:	lsr	x11, x11, #1
-	cbz	x11, 6f
-	tbz	x11, #0, 5f			// skip bit if not set
-	ldr	x12, [x14]			// relocate bit
+	ldr	x11, [x9], #8			// relocation entry 하나를 빼온다.
+	tbnz	x11, #0, 3f			// branch to handle bitmaps if(x11 & (0b1 << 0)) goto 3;
+	add	x13, x11, x23			// 비트맵에 값이 뭔가 없으면, (주석의 A처리 부분.)
+	ldr	x12, [x13]				// relocate address entry
+	add	x12, x12, x15			// 아까 계산 된 값을 적용해준다.
+	str	x12, [x13], #8			// adjust to start of bitmap //??
+	b	2b						// loop
+// 3 BBBBBB(1)
+3:	mov	x14, x13				// kaslr을 적용한 relocation entry를 적용한 값을 임시 저장.
+4:	lsr	x11, x11, #1			// kaslr을 적용하지 않은, relocation entry값을 1bit right shift.
+	cbz	x11, 6f					// 0이면 탈출
+	tbz	x11, #0, 5f				// skip bit if not set if(!(x11&0x01)) goto 5;
+	ldr	x12, [x14]				// relocate bit
 	add	x12, x12, x15
 	str	x12, [x14]
 
