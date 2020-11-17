@@ -134,3 +134,16 @@
  * __enable_mmu 내부
    * phys_to_ttbr 매크로CONFIG_ARM64_PA_BITS_52 가 적용 될 때의 동작 이해
    * offset_to_ttbr1 매크로CONFIG_ARM64_VA_BITS_52가 적용 될 때의 동작 이해
+
+### 13주차
+
+* 2020.11.14, 온라인 세션 (with Zoom)
+  * __relocate_kernel 내 RELR relocations
+  * __primary_switched 내 __pi_memset 까지 진행
+
+* 다음 주 진행 내용
+  * KASAN 개념
+  * kasan_early_init 부터 start_kernel
+  * BPF 실습(다음주 또는 다다음주) - 윤여름님께서 공유해주실 예정
+
+* 향후 스터디 시작 후/저녁 식사 후/스터디 마무리 시간에 자유롭게 질의하는 시간을 갖고자 합니다. 이미 진행한 내용에 대해서도 자유롭게 질문해 주셔도 되니 진도 상황에 관계없이 자유롭게 얘기해주세요
