@@ -147,3 +147,32 @@
   * BPF 실습(다음주 또는 다다음주) - 윤여름님께서 공유해주실 예정
 
 * 향후 스터디 시작 후/저녁 식사 후/스터디 마무리 시간에 자유롭게 질의하는 시간을 갖고자 합니다. 이미 진행한 내용에 대해서도 자유롭게 질문해 주셔도 되니 진도 상황에 관계없이 자유롭게 얘기해주세요
+
+### 14주차
+
+* 2020.11.21, 온라인 세션 (with Zoom)
+  * PLT & GOT
+    * https://bpsecblog.wordpress.com/2016/03/07/about_got_plt_1/
+  * Fixmap
+    * http://jake.dothome.co.kr/fixmap/
+  * KASLR
+    * https://www.workofard.com/2016/05/kaslr-in-the-arm64-kernel/
+    * 2GB 보정 이유
+    * b2eed9b58811283d00fa861944cb75797d4e52a7
+    * KALSR 중 Offset 이용한 범위 지정에 대해 논의
+
+* 다음 주 진행 내용
+  * module_range, module_alloc_base 및 21 비트 사용 이유에 대한 논의
+    ```
+    /*
+		 * Randomize the module region by setting module_alloc_base to
+		 * a PAGE_SIZE multiple in the range [_etext - MODULES_VSIZE,
+		 * _stext) . This guarantees that the resulting region still
+		 * covers [_stext, _etext], and that all relative branches can
+		 * be resolved without veneers.
+		 */
+		module_range = MODULES_VSIZE - (u64)(_etext - _stext);
+		module_alloc_base = (u64)_etext + offset - MODULES_VSIZE;
+    module_alloc_base += (module_range * (seed & ((1 << 21) - 1))) >> 21;
+  	module_alloc_base &= PAGE_MASK;
+    ```
