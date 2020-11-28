@@ -176,3 +176,27 @@
     module_alloc_base += (module_range * (seed & ((1 << 21) - 1))) >> 21;
   	module_alloc_base &= PAGE_MASK;
     ```
+
+### 15주차, 2020.11.28
+* 온라인 세션 (with Zoom), 7명 참석
+* start_kernel ~ cgroup_init_early 까지 분석 진행
+* 코드 리딩
+  * 페이지 테이블 생성 (__create_page_tables) 및 커널 재배치 (__relocate_kernel) 코드 리딩 - 박영준님
+  * module_range, module_alloc_base 및 21비트 사용 이유에 대한 내용 공유 - 윤여름님
+    * module area에서 커널 stext ~ etext 공간에 접근 가능하도록 설계한 개념 전달
+* 논의 내용
+  * set_task_stack_and_magic() 에서 최초 커널 스택 마지막에 magic value를 기록하는 이유와 overflow가 발생하는 일이 있는가?
+    * scheduler에서 magic value를 체크하여 스택이 corrupted 되었는지 확인
+  * cgroup은 무엇이고 어떻게 사용하는가?
+    * https://hwwwi.tistory.com/12
+    * 실제 docker ID == cgroup ID 로 실습 내용 공유 - 박영준님
+  * inline assembly 에서의 "memory" 의미
+    * memory barrier 의 의미로 해석
+    * http://jake.dothome.co.kr/inline-assembly/
+    * https://wiki.kldp.org/KoreanDoc/html/EmbeddedKernel-KLDP/app3.basic.html
+  * mrs_s, msr_s 등의 매크로에서 __emit_inst가 어떻게 사용되는 것인지
+    * .inst directive에서 opcode 로 사용(https://sourceware.org/binutils/docs/as/ARM-Directives.html)
+    * arm64 관련 opcode: https://github.com/CAS-Atlantic/AArch64-Encoding/blob/master/AArch64_ops.pdf
+
+* 다음주 진도 및 논의 내용
+  * local_irq_disable() 부터 분석 진행
