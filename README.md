@@ -8,6 +8,10 @@
 [#iamroot]: http://www.iamroot.org
 [#moonc]: http://jake.dothome.co.kr
 
+## 기타
+
+* [커널 분석 환경 구성](https://www.notion.so/chaoxifer/39d4558faccf499591258b010b6aac28)
+
 ## History
 
 * 첫 모임: 2020년 8월 22일
