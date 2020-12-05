@@ -150,7 +150,9 @@
   * kasan_early_init 부터 start_kernel
   * BPF 실습(다음주 또는 다다음주) - 윤여름님께서 공유해주실 예정
 
-* 향후 스터디 시작 후/저녁 식사 후/스터디 마무리 시간에 자유롭게 질의하는 시간을 갖고자 합니다. 이미 진행한 내용에 대해서도 자유롭게 질문해 주셔도 되니 진도 상황에 관계없이 자유롭게 얘기해주세요
+* 향후 스터디 시작 후/저녁 식사 후/스터디 마무리 시간에 자유롭게
+  질의하는 시간을 갖고자 합니다. 이미 진행한 내용에 대해서도 자유롭게
+  질문해 주셔도 되니 진도 상황에 관계없이 자유롭게 얘기해주세요
 
 ### 14주차
 
@@ -182,6 +184,7 @@
     ```
 
 ### 15주차, 2020.11.28
+
 * 온라인 세션 (with Zoom), 7명 참석
 * start_kernel ~ cgroup_init_early 까지 분석 진행
 * 코드 리딩
@@ -189,18 +192,34 @@
   * module_range, module_alloc_base 및 21비트 사용 이유에 대한 내용 공유 - 윤여름님
     * module area에서 커널 stext ~ etext 공간에 접근 가능하도록 설계한 개념 전달
 * 논의 내용
-  * set_task_stack_and_magic() 에서 최초 커널 스택 마지막에 magic value를 기록하는 이유와 overflow가 발생하는 일이 있는가?
+  * set_task_stack_and_magic() 에서 최초 커널 스택 마지막에 magic
+    value를 기록하는 이유와 overflow가 발생하는 일이 있는가?
     * scheduler에서 magic value를 체크하여 스택이 corrupted 되었는지 확인
-  * cgroup은 무엇이고 어떻게 사용하는가?
-    * https://hwwwi.tistory.com/12
+  * cgroup 은 무엇이고 어떻게 사용하는가?
+    * [https://hwwwi.tistory.com/12](https://hwwwi.tistory.com/12)
     * 실제 docker ID == cgroup ID 로 실습 내용 공유 - 박영준님
   * inline assembly 에서의 "memory" 의미
     * memory barrier 의 의미로 해석
-    * http://jake.dothome.co.kr/inline-assembly/
-    * https://wiki.kldp.org/KoreanDoc/html/EmbeddedKernel-KLDP/app3.basic.html
+    * [문c 블로그 - Inline Assembly](http://jake.dothome.co.kr/inline-assembly/)
+    * [KLDP - Inline Assembly](https://wiki.kldp.org/KoreanDoc/html/EmbeddedKernel-KLDP/app3.basic.html)
   * mrs_s, msr_s 등의 매크로에서 __emit_inst가 어떻게 사용되는 것인지
-    * .inst directive에서 opcode 로 사용(https://sourceware.org/binutils/docs/as/ARM-Directives.html)
-    * arm64 관련 opcode: https://github.com/CAS-Atlantic/AArch64-Encoding/blob/master/AArch64_ops.pdf
+    * .inst directive에서 opcode 로 사용: [ARM-Directives](https://sourceware.org/binutils/docs/as/ARM-Directives.html)
+    * arm64 관련 opcode: [AArch64 OPCODES](https://github.com/CAS-Atlantic/AArch64-Encoding/blob/master/AArch64_ops.pdf)
 
 * 다음주 진도 및 논의 내용
   * local_irq_disable() 부터 분석 진행
+
+### 16주차, 2020.12.05
+
+* 온라인 세션 (with Zoom), 7명 참석
+* 논의 내용
+  * mrs vs. mrs_s vs. __mrs_s
+  * p4d_t 타입이 있는 이유: x86 계열에서는 Level 5 까지의 페이지
+    테이블을 지원하지만 ARM에서는 Level4 까지밖에 지원하지 못하므로
+    임시로 p4d를 만들어 관리하고 있고 실제 `p4d_offset(pgdp, addr)`을
+    살펴보면 pgdp 를 단순히 반환하는 것으로 확인할 수 있다.
+  * alternative 개념
+
+* 다음 주 진도 및 논의 내용
+  * IRQ Descriptor & KPTI 개념 정리
+  * 코드 분석 (local_irq() ~)
