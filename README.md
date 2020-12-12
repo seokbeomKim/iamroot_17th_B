@@ -228,7 +228,7 @@
 
 * 온라인 세션 (with Zoom), 7명 참석
 * 논의 내용
-  * IRQ Descriptor & KPTI 개념 정리
+  * IRQ Descriptor & KPTI 개념 정리 - 박영준님
   * crash 확인 방법, ARM 에서의 NMI
   * LTO에 따른 visible attribute 필요한 이유
     * __attribute((externally_visible))
