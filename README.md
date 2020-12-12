@@ -223,3 +223,47 @@
 * 다음 주 진도 및 논의 내용
   * IRQ Descriptor & KPTI 개념 정리
   * 코드 분석 (local_irq() ~)
+
+### 17주차, 2020.12.12
+
+* 온라인 세션 (with Zoom), 7명 참석
+* 논의 내용
+  * IRQ Descriptor & KPTI 개념 정리
+  * crash 확인 방법, ARM 에서의 NMI
+  * LTO에 따른 visible attribute 필요한 이유
+    * __attribute((externally_visible))
+    * LTO(Link Time Optimization) 기능을 사용하는 경우
+      caller(호출측)와 callee(피호출측)의 관계에서 링커가 callee가 한
+      번만 사용된다고 판단되는 경우 caller에 callee를 inline화 하여
+      집어 넣는데 이 때문에 링킹이 안되는 문제가 발생함 수 있다.
+
+    * Externally_Visible
+
+      This attribute, attached to a global variable or function,
+      nullifies the effect of the -fwhole-program command-line option,
+      so the object remains visible outside the current compilation
+      unit. If -fwhole-program is used together with -flto and gold is
+      used as the linker plugin, externally_visible attributes are
+      automatically added to functions (not variable yet due to a
+      current gold issue) that are accessed outside of LTO objects
+      according to resolution file produced by gold. For other linkers
+      that cannot generate resolution file, explicit
+      externally_visible attributes are still necessary.
+
+  * Meltdown & Spectre 보안 회피 위해 ARM64에서 사용하는 기법
+    (KASLR & KPTI 사용하는 이유)
+    * [https://www.programmersought.com/article/11512728259/](https://www.programmersought.com/article/11512728259/)
+
+  * init_mm.brk = _end 의미
+    * 커널에서의 brk 의미 상 할당을 해놓은 것으로 _end설정 이후에 변할 일이 없음
+
+  * lm_alias와 virt_to_phys 관계 (주석 내용)
+
+* 다음 주 진도
+  * Device Tree, start_kernel ~ IRQ INIT 정리 - 윤여름님께서 정리해주시기로 했습니다.
+    * [https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3](https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3)
+  * 다음 주까지 lisa
+    qemu[https://futurewei-cloud.github.io/ARM-Datacenter/assets/presentations/lisa-qemu-presentation.pdf](https://futurewei-cloud.github.io/ARM-Datacenter/assets/presentations/lisa-qemu-presentation.pdf)
+    로 직접 arm64 커널을 디버깅할 수 있도록 환경
+    구성해보겠습니다. 나중에 직접 커널 디버깅을 해보면서 함께 분석하기
+    위해서라도 미리 해보면 좋을 것 같습니다.
