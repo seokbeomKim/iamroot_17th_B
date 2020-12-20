@@ -110,7 +110,7 @@
   * preserve_boot_args (head.S)
   * __inval_dcache_area (cache.S)
   * read_ctr 매크로
-    * alternative_if_not 관련 내용으로 분석
+	* alternative_if_not 관련 내용으로 분석
 	  - http://jake.dothome.co.kr/alternative/
 	* CPU capability
 	  - http://jake.dothome.co.kr/cpucaps64/
@@ -158,19 +158,19 @@
 
 * 2020.11.21, 온라인 세션 (with Zoom)
   * PLT & GOT
-    * https://bpsecblog.wordpress.com/2016/03/07/about_got_plt_1/
+	* https://bpsecblog.wordpress.com/2016/03/07/about_got_plt_1/
   * Fixmap
-    * http://jake.dothome.co.kr/fixmap/
+	* http://jake.dothome.co.kr/fixmap/
   * KASLR
-    * https://www.workofard.com/2016/05/kaslr-in-the-arm64-kernel/
-    * 2GB 보정 이유
-    * b2eed9b58811283d00fa861944cb75797d4e52a7
-    * KALSR 중 Offset 이용한 범위 지정에 대해 논의
+	* https://www.workofard.com/2016/05/kaslr-in-the-arm64-kernel/
+	* 2GB 보정 이유
+	* b2eed9b58811283d00fa861944cb75797d4e52a7
+	* KALSR 중 Offset 이용한 범위 지정에 대해 논의
 
 * 다음 주 진행 내용
   * module_range, module_alloc_base 및 21 비트 사용 이유에 대한 논의
-    ```
-    /*
+	```
+	/*
 		 * Randomize the module region by setting module_alloc_base to
 		 * a PAGE_SIZE multiple in the range [_etext - MODULES_VSIZE,
 		 * _stext) . This guarantees that the resulting region still
@@ -179,9 +179,9 @@
 		 */
 		module_range = MODULES_VSIZE - (u64)(_etext - _stext);
 		module_alloc_base = (u64)_etext + offset - MODULES_VSIZE;
-    module_alloc_base += (module_range * (seed & ((1 << 21) - 1))) >> 21;
-  	module_alloc_base &= PAGE_MASK;
-    ```
+	module_alloc_base += (module_range * (seed & ((1 << 21) - 1))) >> 21;
+	module_alloc_base &= PAGE_MASK;
+	```
 
 ### 15주차, 2020.11.28
 
@@ -190,21 +190,21 @@
 * 코드 리딩
   * 페이지 테이블 생성 (__create_page_tables) 및 커널 재배치 (__relocate_kernel) 코드 리딩 - 박영준님
   * module_range, module_alloc_base 및 21비트 사용 이유에 대한 내용 공유 - 윤여름님
-    * module area에서 커널 stext ~ etext 공간에 접근 가능하도록 설계한 개념 전달
+	* module area에서 커널 stext ~ etext 공간에 접근 가능하도록 설계한 개념 전달
 * 논의 내용
   * set_task_stack_and_magic() 에서 최초 커널 스택 마지막에 magic
-    value를 기록하는 이유와 overflow가 발생하는 일이 있는가?
-    * scheduler에서 magic value를 체크하여 스택이 corrupted 되었는지 확인
+	value를 기록하는 이유와 overflow가 발생하는 일이 있는가?
+	* scheduler에서 magic value를 체크하여 스택이 corrupted 되었는지 확인
   * cgroup 은 무엇이고 어떻게 사용하는가?
-    * [https://hwwwi.tistory.com/12](https://hwwwi.tistory.com/12)
-    * 실제 docker ID == cgroup ID 로 실습 내용 공유 - 박영준님
+	* [https://hwwwi.tistory.com/12](https://hwwwi.tistory.com/12)
+	* 실제 docker ID == cgroup ID 로 실습 내용 공유 - 박영준님
   * inline assembly 에서의 "memory" 의미
-    * memory barrier 의 의미로 해석
-    * [문c 블로그 - Inline Assembly](http://jake.dothome.co.kr/inline-assembly/)
-    * [KLDP - Inline Assembly](https://wiki.kldp.org/KoreanDoc/html/EmbeddedKernel-KLDP/app3.basic.html)
+	* memory barrier 의 의미로 해석
+	* [문c 블로그 - Inline Assembly](http://jake.dothome.co.kr/inline-assembly/)
+	* [KLDP - Inline Assembly](https://wiki.kldp.org/KoreanDoc/html/EmbeddedKernel-KLDP/app3.basic.html)
   * mrs_s, msr_s 등의 매크로에서 __emit_inst가 어떻게 사용되는 것인지
-    * .inst directive에서 opcode 로 사용: [ARM-Directives](https://sourceware.org/binutils/docs/as/ARM-Directives.html)
-    * arm64 관련 opcode: [AArch64 OPCODES](https://github.com/CAS-Atlantic/AArch64-Encoding/blob/master/AArch64_ops.pdf)
+	* .inst directive에서 opcode 로 사용: [ARM-Directives](https://sourceware.org/binutils/docs/as/ARM-Directives.html)
+	* arm64 관련 opcode: [AArch64 OPCODES](https://github.com/CAS-Atlantic/AArch64-Encoding/blob/master/AArch64_ops.pdf)
 
 * 다음주 진도 및 논의 내용
   * local_irq_disable() 부터 분석 진행
@@ -215,9 +215,9 @@
 * 논의 내용
   * mrs vs. mrs_s vs. __mrs_s
   * p4d_t 타입이 있는 이유: x86 계열에서는 Level 5 까지의 페이지
-    테이블을 지원하지만 ARM에서는 Level4 까지밖에 지원하지 못하므로
-    임시로 p4d를 만들어 관리하고 있고 실제 `p4d_offset(pgdp, addr)`을
-    살펴보면 pgdp 를 단순히 반환하는 것으로 확인할 수 있다.
+	테이블을 지원하지만 ARM에서는 Level4 까지밖에 지원하지 못하므로
+	임시로 p4d를 만들어 관리하고 있고 실제 `p4d_offset(pgdp, addr)`을
+	살펴보면 pgdp 를 단순히 반환하는 것으로 확인할 수 있다.
   * alternative 개념
 
 * 다음 주 진도 및 논의 내용
@@ -231,39 +231,58 @@
   * IRQ Descriptor & KPTI 개념 정리 - 박영준님
   * crash 확인 방법, ARM 에서의 NMI
   * LTO에 따른 visible attribute 필요한 이유
-    * __attribute((externally_visible))
-    * LTO(Link Time Optimization) 기능을 사용하는 경우
-      caller(호출측)와 callee(피호출측)의 관계에서 링커가 callee가 한
-      번만 사용된다고 판단되는 경우 caller에 callee를 inline화 하여
-      집어 넣는데 이 때문에 링킹이 안되는 문제가 발생함 수 있다.
+	* __attribute((externally_visible))
+	* LTO(Link Time Optimization) 기능을 사용하는 경우
+	  caller(호출측)와 callee(피호출측)의 관계에서 링커가 callee가 한
+	  번만 사용된다고 판단되는 경우 caller에 callee를 inline화 하여
+	  집어 넣는데 이 때문에 링킹이 안되는 문제가 발생함 수 있다.
 
-    * Externally_Visible
+	* Externally_Visible
 
-      This attribute, attached to a global variable or function,
-      nullifies the effect of the -fwhole-program command-line option,
-      so the object remains visible outside the current compilation
-      unit. If -fwhole-program is used together with -flto and gold is
-      used as the linker plugin, externally_visible attributes are
-      automatically added to functions (not variable yet due to a
-      current gold issue) that are accessed outside of LTO objects
-      according to resolution file produced by gold. For other linkers
-      that cannot generate resolution file, explicit
-      externally_visible attributes are still necessary.
+	  This attribute, attached to a global variable or function,
+	  nullifies the effect of the -fwhole-program command-line option,
+	  so the object remains visible outside the current compilation
+	  unit. If -fwhole-program is used together with -flto and gold is
+	  used as the linker plugin, externally_visible attributes are
+	  automatically added to functions (not variable yet due to a
+	  current gold issue) that are accessed outside of LTO objects
+	  according to resolution file produced by gold. For other linkers
+	  that cannot generate resolution file, explicit
+	  externally_visible attributes are still necessary.
 
   * Meltdown & Spectre 보안 회피 위해 ARM64에서 사용하는 기법
-    (KASLR & KPTI 사용하는 이유)
-    * [https://www.programmersought.com/article/11512728259/](https://www.programmersought.com/article/11512728259/)
+	(KASLR & KPTI 사용하는 이유)
+	* [https://www.programmersought.com/article/11512728259/](https://www.programmersought.com/article/11512728259/)
 
   * init_mm.brk = _end 의미
-    * 커널에서의 brk 의미 상 할당을 해놓은 것으로 _end설정 이후에 변할 일이 없음
+	* 커널에서의 brk 의미 상 할당을 해놓은 것으로 _end설정 이후에 변할 일이 없음
 
   * lm_alias와 virt_to_phys 관계 (주석 내용)
 
 * 다음 주 진도
   * Device Tree, start_kernel ~ IRQ INIT 정리 - 윤여름님께서 정리해주시기로 했습니다.
-    * [https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3](https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3)
+	* [https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3](https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3)
   * 다음 주까지 lisa
-    qemu[https://futurewei-cloud.github.io/ARM-Datacenter/assets/presentations/lisa-qemu-presentation.pdf](https://futurewei-cloud.github.io/ARM-Datacenter/assets/presentations/lisa-qemu-presentation.pdf)
-    로 직접 arm64 커널을 디버깅할 수 있도록 환경
-    구성해보겠습니다. 나중에 직접 커널 디버깅을 해보면서 함께 분석하기
-    위해서라도 미리 해보면 좋을 것 같습니다.
+	qemu[https://futurewei-cloud.github.io/ARM-Datacenter/assets/presentations/lisa-qemu-presentation.pdf](https://futurewei-cloud.github.io/ARM-Datacenter/assets/presentations/lisa-qemu-presentation.pdf)
+	로 직접 arm64 커널을 디버깅할 수 있도록 환경
+	구성해보겠습니다. 나중에 직접 커널 디버깅을 해보면서 함께 분석하기
+	위해서라도 미리 해보면 좋을 것 같습니다.
+
+### 18주차, 2020.12.19
+
+* 온라인 세션 (with Zoom), 9명 참석
+* 논의 내용
+  * Device Tree 기본 내용 및 Interrupt, Interrupt Controller 관련 DT 내용 정리 - 윤여름님
+  * x86에서의 device tree 사용
+  * device tree 에서의 overlay(?)
+
+* 이론 스터디
+  ([http://jake.dothome.co.kr/linux_5/](http://jake.dothome.co.kr/linux_5/))
+  * ARM64 Page Table Mapping
+  * 처음에 32비트로 진행했었는데 64비트 쪽도 함께 진행하겠습니다.
+
+* 다음 주 진도
+  * setup_arch()
+	* early_fixmap_init()
+	* early_ioremap_init()
+	* setup_machine_fdt(__fdt_pointer)
