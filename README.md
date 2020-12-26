@@ -286,3 +286,33 @@
 	* early_fixmap_init()
 	* early_ioremap_init()
 	* setup_machine_fdt(__fdt_pointer)
+
+### 19주차, 2020.12.26
+
+* 온라인 세션 (with Zoom), 6명 참석
+
+* 논의 내용
+  * early ioremap vs. 정규 ioremap의 차이점
+    * fixmap (early ioremap) 또는 vmalloc (정규 ioremap) 사용에 따른 차이
+  * likely() unlikely()에서 단순하게 레이블로 jmp 것을 비용이 크다고 하는 이유가 무엇인가?
+    * https://lwn.net/Articles/412072/ - trace point 가 disable된 경우는 비교 자체가 유의미 하지 않으니까, cost를 0로 만들어 주겠다는 것
+
+* paging_init 이전에 memblock 초기화 하는 이유
+  * fixmap을 사용하는 이유는 fixmap영역에 swapper_pg_dir을 temp 처럼 mapping 시켜놓고 사용하려는 의도
+  * early ioremap은 paging_init 이전에 디바이스가 메모리에 접근해야 하는 케이스에 대해서 보장하기 위해 사용
+  * arm64_memblock_init은 reserved 용으로 사용하며, paging_init 이후에도 정규 할당자를 바로 사용할 수 없기 때문에 paging_init 이후에도 바로 사용할 수 있는 memblock을 여러 subsystem에서 사용
+    * http://jake.dothome.co.kr/arm64_memblock_init/
+    * http://jake.dothome.co.kr/map64/
+
+* 논의 필요한 내용
+  * paging_init 전에 efi 정보를 얻어와야 하는 이유 (논의 필요)
+  * paging_init을 early_fixmap_init(), 이후에 하는 이유?
+  그냥 paging_init을 미리 하고 fixmap init을 해도 되지 않을까? (논의 필요)
+
+* 이론 스터디
+  * ([http://jake.dothome.co.kr/linux_5/](http://jake.dothome.co.kr/linux_5/))
+  * ARM64 Page Table Mapping (2장)
+
+* 다음 주 진도
+  * jump_label_init()
+  * ARM64 Page Table Mapping (3장)
