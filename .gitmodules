@@ -1,0 +1,3 @@
+[submodule "aarch64_dev/lisa-qemu"]
+	path = aarch64_dev/lisa-qemu
+	url = https://github.com/rf972/lisa-qemu.git

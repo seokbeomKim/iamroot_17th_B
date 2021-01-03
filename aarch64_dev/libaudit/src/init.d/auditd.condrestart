@@ -1,0 +1,11 @@
+#!/bin/sh
+# Helper script to provide legacy auditd service options not
+# directly supported by systemd.
+
+state=`service auditd status | awk '/^   Active/ { print $2 }'`
+if [ $state = "active" ] ; then
+	/usr/libexec/initscripts/legacy-actions/auditd/restart
+	RETVAL="$?"
+	exit $RETVAL
+fi
+exit 0

@@ -1,0 +1,21 @@
+#!/bin/sh
+# Helper script to provide legacy auditd service options not 
+# directly supported by systemd
+
+# Check that we are root ... so non-root users stop here
+test $(id -u) = 0  ||  exit 4
+
+PATH=/sbin:/bin:/usr/bin:/usr/sbin
+prog="auditd"
+. /etc/rc.d/init.d/functions
+pid="$(__pids_pidof "$prog")"
+
+printf "Stopping logging: "
+killproc $prog -TERM
+RETVAL=$?
+if [ -n "$pid" ] ; then
+    # Wait up to 20 seconds for auditd to shutdown
+    timeout 20 tail --pid="$pid" -f /dev/null
+fi
+echo
+exit $RETVAL

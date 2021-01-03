@@ -11,6 +11,10 @@
 ## 기타
 
 * [커널 분석 환경 구성](https://www.notion.so/chaoxifer/39d4558faccf499591258b010b6aac28)
+* [커널 디버깅 환경 구성](https://github.com/seokbeomKim/iamroot_17th_B/tree/master/aarch64_dev)
+
+  * 스크립트로 간단하게 커널 디버깅 환경을 구성할 수 있도록
+    작성되었습니다. 만들어주시느라 고생해주신 윤여름님 정말 감사합니다 :)
 
 ## History
 
@@ -316,3 +320,7 @@
 * 다음 주 진도
   * jump_label_init()
   * ARM64 Page Table Mapping (3장)
+
+### 20주차, 2020.01.02
+
+* 스터디 미 진행 (연휴)
