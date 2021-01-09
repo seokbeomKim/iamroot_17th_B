@@ -70,7 +70,8 @@ To install lisa-qemu please follow orders in TOPDIR.
 =========================
     1. cd TOPDIR/scripts
     2. ./run_lisa_qemu.sh     ======> normal running
-    2. ./run_lisa_qemu.sh -d  ======> debug running (should be attached with gdb)
+    3. ./run_lisa_qemu.sh -d  ======> debug running (should be attached with gdb)
+    4. For more detail about debugging kernel, see section 7. Using GDB
 
 =========================
 6. KILL LISA-QEMU
@@ -79,6 +80,21 @@ To install lisa-qemu please follow orders in TOPDIR.
     2. ./kill_lisa_qemu.sh
 
 =========================
-7. REFERENCES
+7. Using GDB
+=========================
+    1. Install gef (https://github.com/hugsy/gef).
+
+       If you use gdb in tool-chains you've downloaded, install
+       gef-legacy (https://github.com/hugsy/gef-legacy).
+
+    2. ./run_lisa_qemu.sh -d
+    3. Run aarch64-linux-gnu-gdb (if you use Ubuntu as host O/S, use gdb-multiarch instead)
+    4. file $TOPDIR/linux/src/vmlinux
+    5. target remote :1234
+    6. b start_kernel
+    7. continue
+
+=========================
+8. REFERENCES
 =========================
 lisa-qemu: https://github.com/rf972/lisa-qemu
