@@ -324,3 +324,42 @@
 ### 20주차, 2020.01.02
 
 * 스터디 미 진행 (연휴)
+
+### 21주차, 2020.01.09
+
+* lisa-qemu 이용한 커널 디버깅 환경 구성
+  * 커널만 따로 빌드하여 이미지 업데이트 가능하도록 개선 요구
+  * GDB layout 에서의 vertical 기능 지원
+    * 에디터에서 GDB 통합 플러그인 지원
+  * $kernel_dev/linux/src/scripts/package/builddeb 에서 아래 부분 주석 처리
+    ```
+	# create_package "$dbg_packagename" "$dbg_dir"
+    ```
+
+* 논의 내용
+  * always_inline
+    * compiler에 의해 inline이 되지 않는 경우에도 항상 inline이 될 수 있도록
+	강제하기 위한 속성 (함수에 에러가 있다고 진단되거나 최적화 옵션에 따라
+	inline되지 않을 수 있다.)
+
+  * BUILD_BUG_ON 으로 컴파일 타임에 ATOMIC_INIT 으로 테스트 하는 이유
+    * 다른 아키텍처에서 locking issue 가 있어 추가한 것으로서 ARM64의 경우는
+    한번 초기화 된 이후로 바로 return되므로 불필요한 부분이다.
+
+  * JUMP_LABEL_NOP 만 jump table에서 초기화하는 이유
+    * 컴파일러로부터의 nops와 실제 어셈 레벨에서 구현되는 nops 가 다름
+    * ARM nops instruction 크기
+    * 인텔의 경우 5바이트가 JMP 사이즈, nop이 1바이트부터 8바이트까지 가능(각각
+      의미가 있는 실제 인스트럭션이지만 nop처럼 사용할 수 있음),
+    * binutil(컴파일러)이 만드는 multi byte nop이랑 intel 레퍼런스 문서에서
+      추천하는 multi byte nop이 다르다. 때문에, binutil이 만든 multi byte nop을
+      intel 레퍼런스 버젼으로 변환해 주는데, binutil 버젼은 nop에 레지스터
+      의존성이 있어서 속도가 더 느리다.
+	* https://stackoverflow.com/questions/25545470/long-multi-byte-nops-commonly-understood-macros-or-other-notation
+    * http://mail.openjdk.java.net/pipermail/hotspot-compiler-dev/2010-September/003882.html
+
+  * cache bouncing ldrex/strex 이전에 먼저 읽어 확인 후 정상일 때 기록 시도하는
+    것이 어떻게 cache bouncing 문제를 해결하는지 논의 - 차주 다시 논의 필요
+	* 관련 링크: http://jake.dothome.co.kr/exclusive-loads-and-store/
+	* WFE (kernel v3.18 대) 참고
+    * 현재는 ldrex/strex 대신에 qspinlock 사용
