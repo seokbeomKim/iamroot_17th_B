@@ -363,3 +363,22 @@
 	* 관련 링크: http://jake.dothome.co.kr/exclusive-loads-and-store/
 	* WFE (kernel v3.18 대) 참고
     * 현재는 ldrex/strex 대신에 qspinlock 사용
+
+### 22주차, 2020.01.16
+
+* 커널 분석
+  * parse_early_param () ~
+  * do_early_param callback 함수를 통해 boot cmdline 파싱 및 초기화
+  * linux/init.h - early_param 으로 boot 인자 전달 받아 드라이버에서 처리할 수 있음
+  * boot_command_line - fdt 로부터 읽어서 설정 (chosen)
+
+* 논의 내용
+  * mcount: http://blog.daum.net/tlos6733/129
+  * ldrex & strex, MCS Lock, ticketing lock
+
+* 이론
+  * BKL
+  * Exclusive loads and store
+
+* 다음 주 진도
+  * local_daif_restore ~
