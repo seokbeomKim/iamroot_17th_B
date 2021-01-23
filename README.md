@@ -15,10 +15,14 @@
 
 ## History
 
-<details><summary>1주차, 오리엔테이션</summary>
+<details><summary>오리엔테이션</summary>
 <p>
+
+### 1주차
+
 * 2020.08.22, 온라인 세션 (with Zoom)
 * [오리엔테이션](./20200822/orientation.md)
+
 </p>
 </details>
 
@@ -196,6 +200,7 @@
 
 <details><summary>start_kernel (15W ~ )</summary>
 <p>
+
 ### 15주차, 2020.11.28
 
 * 온라인 세션 (with Zoom), 7명 참석
@@ -396,11 +401,24 @@
 ### 23주차, 2020.01.23
 
 * 커널 분석 & 이론
+
   * local_daif_restore () ~ arm64_memblock_init () 이전
+
   * memblock
     - http://jake.dothome.co.kr/memblock-1/
     - http://jake.dothome.co.kr/memblock-2/
+
 * I2C H/W Specification 세미나
+
+  * I2C protocol 기본 통신 방식
+
+  * 하드웨어 기본 설계 요구사항
+
+* 커널 패치 커밋하는 방법
+
+  * checkpatch.pl & get_maintainer.pl 사용하여 format-patch 생성 패치파일 검토
+
+  * mutt mail-client
 
 * 논의 내용
   * .mmuoff.data.write 코멘트
