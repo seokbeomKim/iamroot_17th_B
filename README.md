@@ -28,6 +28,7 @@
 
 <details><summary>이론 스터디 (2W ~ 5W)</summary>
 <p>
+
 ### 2주차
 
 * 2020.08.23, 온라인 세션 (with Zoom)
