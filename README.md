@@ -13,18 +13,17 @@
 * [커널 분석 환경 구성](https://www.notion.so/chaoxifer/39d4558faccf499591258b010b6aac28)
 * [커널 디버깅 환경 구성](https://github.com/seokbeomKim/iamroot_17th_B/tree/master/aarch64_dev)
 
-  * 스크립트로 간단하게 커널 디버깅 환경을 구성할 수 있도록
-    작성되었습니다. 만들어주시느라 고생해주신 윤여름님 정말 감사합니다 :)
-
 ## History
 
-* 첫 모임: 2020년 8월 22일
-
-### 1주차
-
+<details><summary>1주차, 오리엔테이션</summary>
+<p>
 * 2020.08.22, 온라인 세션 (with Zoom)
 * [오리엔테이션](./20200822/orientation.md)
+</p>
+</details>
 
+<details><summary>이론 스터디 (2W ~ 5W)</summary>
+<p>
 ### 2주차
 
 * 2020.08.23, 온라인 세션 (with Zoom)
@@ -68,6 +67,12 @@
 
   * (~p52) 1.7.4 버스 프로토콜과 캐시 일관성 인터커넥트
 
+</p>
+</details>
+
+<details><summary>head.S (6W ~ 14W)</summary>
+<p>
+
 ### 6주차
 
 * 2020.09.26, 온라인 세션 (with Zoom)
@@ -82,10 +87,9 @@
 * 분석 소스코드: https://github.com/seokbeomKim/iamroot_17th_group7/tree/20200926
 * 추석 연휴인 관계로 다음 스터디는 10/10일에 진행됩니다.
 
-* 부트로더(u-boot)에서 EFI pe entry 부분을 설정하고 리눅스 커널에서
-  읽어오는 부분에 대해, 윤여름님께서 아래와 같이
-  설명해주셨습니다. 관련 내용은 [EFI boot from u-boot to kernel
-  start-point](https://github.com/seokbeomKim/iamroot_17th_group7/blob/kernel/Documentation/iamroot/set_efi_pe_before_kernel_start.org)
+* 부트로더(u-boot)에서 EFI pe entry 부분을 설정 및 파싱
+  - [EFI boot from u-boot to kernel
+    start-point](https://github.com/seokbeomKim/iamroot_17th_group7/blob/kernel/Documentation/iamroot/set_efi_pe_before_kernel_start.org)
 
 ### 8주차
 
@@ -152,7 +156,7 @@
 * 다음 주 진행 내용
   * KASAN 개념
   * kasan_early_init 부터 start_kernel
-  * BPF 실습(다음주 또는 다다음주) - 윤여름님께서 공유해주실 예정
+  * BPF 실습
 
 * 향후 스터디 시작 후/저녁 식사 후/스터디 마무리 시간에 자유롭게
   질의하는 시간을 갖고자 합니다. 이미 진행한 내용에 대해서도 자유롭게
@@ -187,13 +191,18 @@
 	module_alloc_base &= PAGE_MASK;
 	```
 
+</p>
+</details>
+
+<details><summary>start_kernel (15W ~ )</summary>
+<p>
 ### 15주차, 2020.11.28
 
 * 온라인 세션 (with Zoom), 7명 참석
 * start_kernel ~ cgroup_init_early 까지 분석 진행
 * 코드 리딩
-  * 페이지 테이블 생성 (__create_page_tables) 및 커널 재배치 (__relocate_kernel) 코드 리딩 - 박영준님
-  * module_range, module_alloc_base 및 21비트 사용 이유에 대한 내용 공유 - 윤여름님
+  * 페이지 테이블 생성 (__create_page_tables) 및 커널 재배치 (__relocate_kernel) 코드 리딩
+  * module_range, module_alloc_base 및 21비트 사용 이유에 대한 내용 공유
 	* module area에서 커널 stext ~ etext 공간에 접근 가능하도록 설계한 개념 전달
 * 논의 내용
   * set_task_stack_and_magic() 에서 최초 커널 스택 마지막에 magic
@@ -201,7 +210,7 @@
 	* scheduler에서 magic value를 체크하여 스택이 corrupted 되었는지 확인
   * cgroup 은 무엇이고 어떻게 사용하는가?
 	* [https://hwwwi.tistory.com/12](https://hwwwi.tistory.com/12)
-	* 실제 docker ID == cgroup ID 로 실습 내용 공유 - 박영준님
+	* 실제 docker ID == cgroup ID 로 실습 내용 공유
   * inline assembly 에서의 "memory" 의미
 	* memory barrier 의 의미로 해석
 	* [문c 블로그 - Inline Assembly](http://jake.dothome.co.kr/inline-assembly/)
@@ -232,7 +241,7 @@
 
 * 온라인 세션 (with Zoom), 7명 참석
 * 논의 내용
-  * IRQ Descriptor & KPTI 개념 정리 - 박영준님
+  * IRQ Descriptor & KPTI 개념 정리
   * crash 확인 방법, ARM 에서의 NMI
   * LTO에 따른 visible attribute 필요한 이유
 	* __attribute((externally_visible))
@@ -264,7 +273,7 @@
   * lm_alias와 virt_to_phys 관계 (주석 내용)
 
 * 다음 주 진도
-  * Device Tree, start_kernel ~ IRQ INIT 정리 - 윤여름님께서 정리해주시기로 했습니다.
+  * Device Tree, start_kernel ~ IRQ INIT 정리
 	* [https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3](https://github.com/devicetree-org/devicetree-specification/releases/tag/v0.3)
   * 다음 주까지 lisa
 	qemu[https://futurewei-cloud.github.io/ARM-Datacenter/assets/presentations/lisa-qemu-presentation.pdf](https://futurewei-cloud.github.io/ARM-Datacenter/assets/presentations/lisa-qemu-presentation.pdf)
@@ -276,7 +285,7 @@
 
 * 온라인 세션 (with Zoom), 9명 참석
 * 논의 내용
-  * Device Tree 기본 내용 및 Interrupt, Interrupt Controller 관련 DT 내용 정리 - 윤여름님
+  * Device Tree 기본 내용 및 Interrupt, Interrupt Controller 관련 DT 내용 정리
   * x86에서의 device tree 사용
   * device tree 에서의 overlay(?)
 
@@ -381,4 +390,38 @@
   * Exclusive loads and store
 
 * 다음 주 진도
-  * local_daif_restore ~
+  * local_daif_restore() ~
+  * memblock 이론 정리 및 zone allocator 공부
+
+### 23주차, 2020.01.23
+
+* 커널 분석 & 이론
+  * local_daif_restore () ~ arm64_memblock_init () 이전
+  * memblock
+    - http://jake.dothome.co.kr/memblock-1/
+    - http://jake.dothome.co.kr/memblock-2/
+* I2C H/W Specification 세미나
+
+* 논의 내용
+  * .mmuoff.data.write 코멘트
+    * 위치: $linux/arch/arm64/kernel/vmlinux.lds.S::.mmuoff.data.write
+    * MMUOFF에서 사용할 데이터를 읽는 이유와 읽을 때 invalidate 를 해줘야 하는 이유
+      * https://patchwork.kernel.org/project/linux-arm-kernel/patch/1472059650-591-3-git-send-email-james.morse@arm.com/
+
+* GIC Interrupt
+  * 키보드 인터럽트가 한 코어에서만 잡힌다면 해당 인터럽트가 PPI로서 GIC에서 기술되어서인지? NO.
+    - PPI는 프로세서에 특정된 인터럽트만 기술하며 일반적으로 주변장치의 인터럽트는 SPI로 등록
+    - https://sunshout.tistory.com/1474#:~:text=PPI%20(Private%20Peripheral%20Interrupt)%20%3A,writing%20to%20a%20GICD_SGIR%20register
+
+* memory allocator가 early 단계와 아닌 단계로 나눠지는 이유
+  - SMP 환경에서 쓸 수 있는 메모리 할당자를 위해 충분히 초기화 되지 않았기 때문
+  - $Linux/Documentation/core-api/boot-time-mm.rst 참고
+
+* __tlbi 에서 alternative 코드 들어간 이유
+  - 관련 커밋 참고: https://github.com/torvalds/linux/commit/d9ff80f83ecbf4cbdf56d32d01c312498e4fb1cd
+
+* memblock 에서 physmem 은 사용 아예 안하는가
+  - struct memblock 에만 제거되었으며 특정 아키텍처를 위해 Kconfig 및 API는 남겨두고 있음
+
+</p>
+</details>
