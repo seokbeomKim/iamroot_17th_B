@@ -442,5 +442,18 @@
 * memblock 에서 physmem 은 사용 아예 안하는가
   - struct memblock 에만 제거되었으며 특정 아키텍처를 위해 Kconfig 및 API는 남겨두고 있음
 
+### 24주차, 2020.01.30
+
+* 커널 분석 & 이론
+
+  * arm64_memblock_init () ~
+  * memblock
+    - http://jake.dothome.co.kr/memblock-2/
+
+* [I2C 세미나 자료](./20210130/i2c_in_devicetree.org)
+* 논의 내용
+  * volatile 을 이용한 READ_ONCE() / WRITE_ONCE() 의 경우 메모리 배리어인가
+    컴파일러 배리어인가?
+
 </p>
 </details>

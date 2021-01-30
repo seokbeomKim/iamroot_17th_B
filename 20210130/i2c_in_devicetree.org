@@ -1,0 +1,96 @@
+;; Local Variables:
+;; eval: (setq org-image-actual-width nil)
+;; End:
+
+* I2C in Linux Kernel
+
+1. What is I2C?
+2. I2C API in Linux Kernel
+3. DS1307 RTC device driver
+4. regmap
+
+* What is I2C?
+
+** H/W architecture
+
+#+BEGIN_SRC artist
+  +------------+
+  |            | SCL
+  |   Master   +------------+--------------+---------------+
+  |            +------------]-----+--------]------+--------]-----+
+  |            | SDA        |     |        |      |        |     |
+  +------------+        +---+-----+--+  +--+------+--+  +--+-----+---+
+                        |  Slave #1  |  |  Slave #2  |  |  Slave #3  |
+                        +------------+  +------------+  +------------+
+#+END_SRC
+
+** i2c-tools
+
+/i2c-tools/ (https://mirrors.edge.kernel.org/pub/software/utils/i2c-tools/) are
+provided. (slave devices detection, reading/sending bytes from/to slave device)
+
+** Schematic
+- MCP23008 (Serial Peripherals)
+#+ATTR_ORG: :width 1000
+[[./schematic-i2c.png]]
+
+
+* I2C interface in Linux Kernel
+
+~struct i2c_client~ is provided in Linux Kernel.
+
+#+BEGIN_SRC c
+  struct i2c_client {
+          unsigned short flags;		/* div., see below		*/
+  #define I2C_CLIENT_PEC		0x04	/* Use Packet Error Checking */
+  #define I2C_CLIENT_TEN		0x10	/* we have a ten bit chip address */
+                                          /* Must equal I2C_M_TEN below */
+  #define I2C_CLIENT_SLAVE	0x20	/* we are the slave */
+  #define I2C_CLIENT_HOST_NOTIFY	0x40	/* We want to use I2C host notify */
+  #define I2C_CLIENT_WAKE		0x80	/* for board_info; true iff can wake */
+  #define I2C_CLIENT_SCCB		0x9000	/* Use Omnivision SCCB protocol */
+                                          /* Must match I2C_M_STOP|IGNORE_NAK */
+
+          unsigned short addr;		/* chip address - NOTE: 7bit	*/
+                                          /* addresses are stored in the	*/
+                                          /* _LOWER_ 7 bits		*/
+          char name[I2C_NAME_SIZE];
+          struct i2c_adapter *adapter;	/* the adapter we sit on	*/
+          struct device dev;		/* the device structure		*/
+          int init_irq;			/* irq set at initialization	*/
+          int irq;			/* irq issued by device		*/
+          struct list_head detected;
+  #if IS_ENABLED(CONFIG_I2C_SLAVE)
+          i2c_slave_cb_t slave_cb;	/* callback for slave mode	*/
+  #endif
+  };
+#+END_SRC
+
+
+* An example driver
+
+- Board: AM335x-Nano
+- Device: DS1307
+
+** Schematic
+[[./DS1307_schematic.png]]
+
+
+** Kernel code
+- [[file:~/Workspaces/linux/drivers/rtc/rtc-ds1307.c::static int ds1307_probe(struct i2c_client *client,][$linux/drivers/rtc/rtc-ds1307.c]]
+- [[file:~/Workspaces/linux/arch/arm/boot/dts/am335x-nano.dts::rtc@68 {][Device Tree - DS1307]]
+- [[file:~/Workspaces/linux/arch/arm/boot/dts/am335x-nano.dts::i2c0_pins: i2c0_pins {][Device Tree - AM335x I2C0]]
+- pinctrl dt-bindings
+  - [[file:~/Workspaces/linux/include/dt-bindings/pinctrl/am33xx.h::#ifndef _DT_BINDINGS_PINCTRL_AM33XX_H][$linux/include/dt-bindings/pinctrl/am33xx.h]]
+
+
+* Regmap
+
+- Byte size to configure device via I2C could be different.
+- In Linux Kernel, regmap (Register map access) API is provided to handle the
+  byte difference.
+- [[file:~/Workspaces/linux/include/linux/regmap.h::struct regmap_config {][See regmap.h ($linux/include/linux/regmap.h)]]
+
+** Do not use raw I2C API!
+
+- [[file:~/Workspaces/linux/drivers/media/i2c/adv7183.c::static inline int adv7183_read(struct v4l2_subdev *sd, unsigned char reg)][adv7183 decoder device driver]] uses raw API to handle I2C.
